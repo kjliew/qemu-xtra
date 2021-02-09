@@ -138,11 +138,15 @@ static GrHwConfiguration hwconfig;
 FX_ENTRY void FX_CALL 
 grEnable( GrEnableMode_t mode )
 {
+    if (GR_PASSTHRU == mode)
+        grSstControl(GR_CONTROL_DEACTIVATE);
 }
 
 FX_ENTRY void FX_CALL 
 grDisable( GrEnableMode_t mode )
 {
+    if (GR_PASSTHRU == mode)
+        grSstControl(GR_CONTROL_ACTIVATE);
 }
 
 FX_ENTRY FxU32 FX_CALL
@@ -185,6 +189,7 @@ grGet( FxU32 pname, FxU32 plength, FxI32 *params )
         { GR_NUM_TMU, 4,                  &dataU32[1] },
         { GR_REVISION_FB, 4,              &chipRev[0] },
         { GR_REVISION_TMU, 4,             &chipRev[1] },
+        { GR_SUPPORTS_PASSTHRU, 4,        &dataU32[1] },
         { GR_TEXTURE_ALIGN, 4,            &texAlign },
         { GR_VIEWPORT, 16, vertex3x.viewPort },
         { GR_WDEPTH_MIN_MAX, 8, vertex3x.depthRange },
@@ -333,10 +338,12 @@ grGetGammaTableExt( FxU32 nentries, FxU32 *red, FxU32 *green, FxU32 *blue)
 FX_ENTRY GrProc FX_CALL
 grGetProcAddress( char *procName )
 {
-    if (trace_g3ext)
-        DPRINTF("grGetProcAddress() func %s\n", procName);
     if (!memcmp(procName, "grGetGammaTableExt", sizeof("grGetGammaTableExt")))
         return (GrProc)&grGetGammaTableExt;
+    if (!memcmp(procName, "grCommandTransportInfoExt2", sizeof("grCommandTransportInfoExt2")))
+        return 0;
+    if (trace_g3ext)
+        DPRINTF("grGetProcAddress() func %s\n", procName);
     return 0;
 }
 
@@ -448,6 +455,7 @@ wrap3x_grFogTable( const GrFog_t ft[] )
     if (vertex3x.vlut[GR_PARAM_IDX(GR_PARAM_Q0)] && 
         (vertex3x.vlut[GR_PARAM_IDX(GR_PARAM_Q0)] == vertex3x.vlut[GR_PARAM_IDX(GR_PARAM_Q1)])) {
         guFogGenerateLinear(fto, guFogTableIndexToW(0), guFogTableIndexToW(63));
+#if 0
         fprintf(stderr, "  FogTable override:\n  ");
         for (int i = 0; i < GR_FOG_TABLE_SIZE; i++) {
             if (i && ((i % 0x10) == 0))
@@ -455,6 +463,7 @@ wrap3x_grFogTable( const GrFog_t ft[] )
             fprintf(stderr, "%02X ", fto[i]);
         }
         fprintf(stderr, "\n");
+#endif
     }
     grFogTable(fto);
 }

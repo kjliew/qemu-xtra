@@ -8,6 +8,10 @@
 #include "sdk2_glide.h"
 #include "sdk2_glide3.h"
 
+#if FXSIZEOF_INT_P != 4
+# error "sizeof (intptr_t) != 4"
+#endif
+
 #define G3_LOD_TRANSLATE(lod)                       (0x8-lod)
 #define G3_ASPECT_TRANSLATE(aspect)                 (0x3-(aspect))
 

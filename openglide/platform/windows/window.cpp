@@ -177,6 +177,8 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             exit( 1 );
         }
     }
+    else
+        SetPixelFormat( hDC, PixFormat, NULL );
 
     DescribePixelFormat( hDC, PixFormat, sizeof( PIXELFORMATDESCRIPTOR ), &pfd );
     GlideMsg( "ColorBits	= %d\n", pfd.cColorBits );
@@ -249,6 +251,11 @@ void RestoreGamma()
 void SetGammaTable(void *ptbl)
 {
     HDC pDC = GetDC(NULL);
+    BOOL (WINAPI *SetGammaExt)(HDC, LPVOID) = (BOOL (WINAPI *)(HDC, LPVOID))
+        wglGetProcAddress("wglSetDeviceGammaRamp3DFX");
+    if (SetGammaExt)
+        SetGammaExt( pDC, ptbl );
+    else
     SetDeviceGammaRamp( pDC, ptbl );
     ReleaseDC( NULL, pDC );
 }
@@ -256,6 +263,11 @@ void SetGammaTable(void *ptbl)
 void GetGammaTable(void *ptbl)
 {
     HDC pDC = GetDC(NULL);
+    BOOL (WINAPI *GetGammaExt)(HDC, LPVOID) = (BOOL (WINAPI *)(HDC, LPVOID))
+        wglGetProcAddress("wglGetDeviceGammaRamp3DFX");
+    if (GetGammaExt)
+        GetGammaExt( pDC, ptbl );
+    else
     GetDeviceGammaRamp( pDC, ptbl );
     ReleaseDC( NULL, pDC );
 }

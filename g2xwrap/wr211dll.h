@@ -8,6 +8,10 @@
 #include "sdk2_3dfx.h"
 #include "sdk2_glide.h"
 
+#if FXSIZEOF_INT_P != 4
+# error "sizeof (intptr_t) != 4"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
