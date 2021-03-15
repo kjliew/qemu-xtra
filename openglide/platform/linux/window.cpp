@@ -180,7 +180,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     try
     {
         int size;
-        if (visinfo->c_class == DirectColor)
+        if (!win && (visinfo->c_class == DirectColor))
         {   // If DirectColor we can use colormaps instead
             xcolors.resize (visinfo->colormap_size);
         }
@@ -197,23 +197,23 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             switch (size) {
                 case 0x100:
                 for (int i = 0; i < size; i++) {
-                    *red++   = (unsigned short)((i << 8 | i) & 0xFFFFU);
-                    *green++ = (unsigned short)((i << 8 | i) & 0xFFFFU);
-                    *blue++  = (unsigned short)((i << 8 | i) & 0xFFFFU);
+                    *red++   = (unsigned short)(((i << 8) | i) & 0xFFFFU);
+                    *green++ = (unsigned short)(((i << 8) | i) & 0xFFFFU);
+                    *blue++  = (unsigned short)(((i << 8) | i) & 0xFFFFU);
                 }
                 break;
                 case 0x400:
                 for (int i = 0; i < size; i++) {
-                    *red++   = (unsigned short)((i << 6) | (((i << 6) & 0xFC00U) >> 10) & 0xFFFFU);
-                    *green++ = (unsigned short)((i << 6) | (((i << 6) & 0xFC00U) >> 10) & 0xFFFFU);
-                    *blue++  = (unsigned short)((i << 6) | (((i << 6) & 0xFC00U) >> 10) & 0xFFFFU);
+                    *red++   = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
+                    *green++ = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
+                    *blue++  = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
                 }
                 break;
                 case 0x800:
                 for (int i = 0; i < size; i++) {
-                    *red++   = (unsigned short)((i << 5) | (((i << 5) & 0xF800U) >> 11) & 0xFFFFU);
-                    *green++ = (unsigned short)((i << 5) | (((i << 5) & 0xF800U) >> 11) & 0xFFFFU);
-                    *blue++  = (unsigned short)((i << 5) | (((i << 5) & 0xF800U) >> 11) & 0xFFFFU);
+                    *red++   = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
+                    *green++ = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
+                    *blue++  = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
                 }
                 break;
             }
@@ -397,38 +397,100 @@ void RestoreGamma()
 void SetGammaTable(void *ptbl)
 {
     int size = gammaRamp.size() / 6;
-    if (0x100 == size) {
-        struct s_ramp {
-            unsigned short r[256];
-            unsigned short g[256];
-            unsigned short b[256];
-        } *ramp_ptr = (struct s_ramp *) ptbl;
-        XF86VidModeSetGammaRamp(dpy, scrnum, size, ramp_ptr->r, ramp_ptr->g, ramp_ptr->b);
+    struct s_ramp {
+        unsigned short r[256];
+        unsigned short g[256];
+        unsigned short b[256];
+    } *ramp_ptr = (struct s_ramp *) ptbl;
+    unsigned short *red = &gammaRamp[0];
+    unsigned short *green = red + size;
+    unsigned short *blue = green + size;
+
+    switch (size) {
+        case 0x100:
+            memcpy(red,   ramp_ptr->r, size);
+            memcpy(green, ramp_ptr->g, size);
+            memcpy(blue,  ramp_ptr->b, size);
+            break;
+        case 0x400:
+            for (int i = 0; (i + 1) < 0x100; i++) {
+                for (int j = 0; j < 4; j++) {
+                      red[(i << 2) + j] = ramp_ptr->r[i] + (j * ((ramp_ptr->r[i + 1] - ramp_ptr->r[i]) >> 2));
+                      red[(i << 2) + j] |=   (red[(i << 2) + j] & 0xFF00U) >> 8;
+                    green[(i << 2) + j] = ramp_ptr->g[i] + (j * ((ramp_ptr->g[i + 1] - ramp_ptr->g[i]) >> 2));
+                    green[(i << 2) + j] |= (green[(i << 2) + j] & 0xFF00U) >> 8;
+                     blue[(i << 2) + j] = ramp_ptr->b[i] + (j * ((ramp_ptr->b[i + 1] - ramp_ptr->b[i]) >> 2));
+                     blue[(i << 2) + j] |=  (blue[(i << 2) + j] & 0xFF00U) >> 8;
+                }
+            }
+            for (int k = (size - 4); k < size; k++) {
+                red[k]   = 0xFFFFU;
+                green[k] = 0xFFFFU;
+                blue[k]  = 0xFFFFU;
+            }
+            break;
+        case 0x800:
+            for (int i = 0; (i + 1) < 0x100; i++) {
+                for (int j = 0; j < 8; j++) {
+                      red[(i << 3) + j] = ramp_ptr->r[i] + (j * ((ramp_ptr->r[i + 1] - ramp_ptr->r[i]) >> 3));
+                      red[(i << 3) + j] |=   (red[(i << 3) + j] & 0xFF00U) >> 8;
+                    green[(i << 3) + j] = ramp_ptr->g[i] + (j * ((ramp_ptr->g[i + 1] - ramp_ptr->g[i]) >> 3));
+                    green[(i << 3) + j] |= (green[(i << 3) + j] & 0xFF00U) >> 8;
+                     blue[(i << 3) + j] = ramp_ptr->b[i] + (j * ((ramp_ptr->b[i + 1] - ramp_ptr->b[i]) >> 3));
+                     blue[(i << 3) + j] |=  (blue[(i << 3) + j] & 0xFF00U) >> 8;
+                }
+            }
+            for (int k = (size - 8); k < size; k++) {
+                red[k]   = 0xFFFFU;
+                green[k] = 0xFFFFU;
+                blue[k]  = 0xFFFFU;
+            }
+            break;
+        default:
+            fprintf(stderr, "Unsupported gammaRamp.size() == %d\n", size);
+            return;
     }
-    else
-        fprintf(stderr, "Unsupported gammaRamp.size() == %d\n", size);
+    XF86VidModeSetGammaRamp(dpy, scrnum, size, red, green, blue);
 }
 
 void GetGammaTable(void *ptbl)
 {
     int size = gammaRamp.size() / 6;
-    if (0x100 == size) {
-        struct s_ramp {
-            unsigned short r[256];
-            unsigned short g[256];
-            unsigned short b[256];
-        } *ramp_ptr = (struct s_ramp *) ptbl;
-        unsigned short *red = &gammaRamp[0];
-        unsigned short *green = red + size;
-        unsigned short *blue = green + size;
-        for (int i = 0; i < 0x100; i++) {
-            ramp_ptr->r[i] = red[i];
-            ramp_ptr->g[i] = green[i];
-            ramp_ptr->b[i] = blue[i];
-        }
+    struct s_ramp {
+        unsigned short r[256];
+        unsigned short g[256];
+        unsigned short b[256];
+    } *ramp_ptr = (struct s_ramp *) ptbl;
+    unsigned short *red = &gammaRamp[0];
+    unsigned short *green = red + size;
+    unsigned short *blue = green + size;
+    if (size)
+        XF86VidModeGetGammaRamp(dpy, scrnum, size, red, green, blue);
+
+    switch (size) {
+        case 0x100:
+            memcpy(ramp_ptr->r,   red, size);
+            memcpy(ramp_ptr->g, green, size);
+            memcpy(ramp_ptr->b,  blue, size);
+            break;
+        case 0x400:
+            for (int i = 0; i < 0x100; i ++) {
+                ramp_ptr->r[i] = (  red[i << 2] & 0xFF00U) | i;
+                ramp_ptr->g[i] = (green[i << 2] & 0xFF00U) | i;
+                ramp_ptr->b[i] = ( blue[i << 2] & 0xFF00U) | i;
+            }
+            break;
+        case 0x800:
+            for (int i = 0; i < 0x100; i ++) {
+                ramp_ptr->r[i] = (  red[i << 3] & 0xFF00U) | i;
+                ramp_ptr->g[i] = (green[i << 3] & 0xFF00U) | i;
+                ramp_ptr->b[i] = ( blue[i << 3] & 0xFF00U) | i;
+            }
+            break;
+        default:
+            fprintf(stderr, "Unsupported gammaRamp.size() == %d\n", size);
+            break;
     }
-    else
-        fprintf(stderr, "Unsupported gammaRamp.size() == %d\n", size);
 }
 
 bool SetScreenMode(int &width, int &height)
