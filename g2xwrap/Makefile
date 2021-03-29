@@ -13,7 +13,7 @@ all: sanity $(TARGET3) $(TARGET1)
 
 sanity:
 	@if [ "$$MSYSTEM" != "MINGW32" ]; then echo "Error: MSYSTEM == $$MSYSTEM"; exit 1; fi
-	$(PEXPORTS) ../build/glide2x.dll | sed "s/^_//" > /tmp/dll.def
+	$(PEXPORTS) ../build/.libs/libglide2x.dll | sed "s/^_//" > /tmp/dll.def
 	dlltool -U -d /tmp/dll.def -l libglide2x.dll.a
 
 $(TARGET3): gl301wrp.def wr301dll.cpp
