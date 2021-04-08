@@ -370,7 +370,7 @@ FX_ENTRY void FX_CALL setConfig(FxU32 flags)
 {
     UserConfig.EnableMipMaps = (UserConfig.EnableMipMaps == 0)?
         ((flags & WRAPPER_FLAG_MIPMAPS) != 0):UserConfig.EnableMipMaps;
-    UserConfig.VSync = ((flags & WRAPPER_FLAG_VSYNC) != 0);
+    UserConfig.VsyncOff = ((flags & WRAPPER_FLAG_VSYNCOFF) != 0);
     UserConfig.QEmu = ((flags & WRAPPER_FLAG_QEMU) != 0);
     UserConfig.InitFullScreen = (flags & WRAPPER_FLAG_WINDOWED)? false:true;
 }

@@ -192,11 +192,12 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     hRC = wglCreateContext( hDC );
     wglMakeCurrent( hDC, hRC );
 
-    if (UserConfig.QEmu) {
+    if (UserConfig.QEmu && UserConfig.VsyncOff) {
+        const int swapInterval = 0;
         int (WINAPI *SwapIntervalEXT)(int) = (int (WINAPI *)(int))
             wglGetProcAddress("wglSwapIntervalEXT");
         if (SwapIntervalEXT)
-            SwapIntervalEXT((UserConfig.VSync)? 1:0);
+            SwapIntervalEXT(swapInterval);
     }
 
     // ramp_stored = GetDeviceGammaRamp( pDC, &old_ramp );

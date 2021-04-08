@@ -285,7 +285,7 @@ struct ConfigStruct
 
     bool    NoSplash;
     bool    ShamelessPlug;
-    bool    VSync;
+    bool    VsyncOff;
     bool    QEmu;
 };
 

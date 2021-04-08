@@ -275,12 +275,12 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     glXMakeCurrent(dpy, win, ctx);
 
-    if (UserConfig.QEmu) {
+    if (UserConfig.QEmu && UserConfig.VsyncOff) {
         union {
             void (*glXProc)(Display *, GLXDrawable, int);
             void (*MesaProc)(int);
         } SwapIntervalEXT;
-        int swapInterval = (UserConfig.VSync)? 1:0;
+        const int swapInterval = 0;
         if (find_xstr(xstr, "GLX_MESA_swap_control")) {
             SwapIntervalEXT.MesaProc = (void (*)(int))
                 OGLGetProcAddress("glXSwapIntervalMESA");
