@@ -638,7 +638,7 @@ grSstVRetraceOn( void )
     GlideMsg( "grSstVRetraceOn( )\n" );
 #endif
 
-    return Glide.State.VRetrace;
+    return ((grSstStatus() & (1 << 6)) == 0);
 }
 
 //*************************************************
@@ -695,11 +695,12 @@ grSstStatus( void )
     GlideMsg( "grSstStatus( )\n" );
 #endif
 
-//    FxU32 Status = 0x0FFFF43F;
+    static int retrace;
     FxU32 Status = 0x0FFFF03F;
+    retrace ^= Glide.State.VRetrace;
     
     // Vertical Retrace
-    Status      |= ( ! Glide.State.VRetrace ) << 6;
+    Status      |= (retrace << 6);
 
     return Status;
 // Bits
