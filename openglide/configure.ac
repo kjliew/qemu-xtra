@@ -89,9 +89,9 @@ case "$host" in
         DLLFLAGS_3="-avoid-version -Wc,-def -Wc,\$(top_srcdir)/Glide3x.def"
         ;;
     *darwin*)
-        osflag="__linux__"
-        CXXFLAGS="$CXXFLAGS -D__unix__ -D$osflag -I\$(top_srcdir) -I\$(top_srcdir)/platform/linux"
-        LIBS="$LIBS -Wl,-framework,OpenGL"
+        osflag="__darwin__"
+        CXXFLAGS="$CXXFLAGS -D__unix__ -D$osflag -I/opt/X11/include -I\$(top_srcdir) -I\$(top_srcdir)/platform/linux"
+        LIBS="$LIBS -L/opt/X11/lib -lX11 -lXxf86vm -lGL -lGLU -Wl,-framework,OpenGL"
         ;;
     *freebsd*)
         ;;
