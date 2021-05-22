@@ -756,7 +756,7 @@ grSplash (float x, float y, float w, float h, FxU32 _frame)
     }
   }
 
-  if ( (Glide.State.OriginInformation == GR_ORIGIN_UPPER_LEFT) ) {
+  if (Glide.State.OriginInformation == GR_ORIGIN_UPPER_LEFT) {
     y = (( Glide.WindowHeight - 1.0f ) - (h-1.0f) ) - y;
   }
         

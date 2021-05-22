@@ -847,7 +847,7 @@ grDrawVertexArrayContiguous(FxU32 mode, FxU32 Count, void *pointers, FxU32 strid
                     vertex3x.wrap(&vbuf[4], v);
                     vi = 0; vo = 0; i = 1;
                 }
-                for (i; i < Count; i++) {
+                for (; i < Count; i++) {
                     if (abs(vi - vo) == 2) {
                         grDrawTriangle(&vbuf[4], &vbuf[vo], &vbuf[(vo+1)%4]);
                         vo++; vo %= 4;
