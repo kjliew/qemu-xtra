@@ -295,11 +295,12 @@ bool SetScreenMode(int &xsize, int &ysize)
              ( DevMode.dmPelsHeight == (FxU32)ysize ) && 
              ( DevMode.dmBitsPerPel == bits_per_pixel ) )
         {
+            DevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
             found = true;
         }
     }
     
-    return ( found && ChangeDisplaySettings( &DevMode, CDS_RESET|CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL );
+    return ( found && ChangeDisplaySettings( &DevMode, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL );
 }
 
 void ResetScreenMode()
