@@ -44,6 +44,7 @@ bool dummyExtVariable2 = true;
 stExtensionSupport glNecessaryExt[] =
 {
 #ifdef __darwin__
+    { "GL_APPLE_packed_pixels",         OGL_EXT_REQUIRED,   &dummyExtVariable,                  &dummyExtVariable2 },
 #else
     { "GL_EXT_packed_pixels",           OGL_EXT_REQUIRED,   &dummyExtVariable,                  &dummyExtVariable2 },
 #endif

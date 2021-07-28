@@ -171,7 +171,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     {   // Determine presence of video mode extension
         int major = 0, minor = 0;
-        vidmode_ext = XF86VidModeQueryVersion (dpy, &major, &minor) != 0;
+        vidmode_ext = XF86VidModeQueryExtension (dpy, &major, &minor) != 0;
     }
         
     if (vidmode_ext && UserConfig.InitFullScreen)
@@ -184,7 +184,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         {   // If DirectColor we can use colormaps instead
             xcolors.resize (visinfo->colormap_size);
         }
-        else if (XF86VidModeGetGammaRampSize(dpy, scrnum, &size))
+        else if (vidmode_ext && XF86VidModeGetGammaRampSize(dpy, scrnum, &size))
         {
             gammaRamp.resize (size * 6);
             unsigned short *red   = &gammaRamp[0];
