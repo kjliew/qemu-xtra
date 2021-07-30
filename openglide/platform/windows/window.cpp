@@ -300,7 +300,7 @@ bool SetScreenMode(int &xsize, int &ysize)
         }
     }
     
-    return ( found && ChangeDisplaySettings( &DevMode, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL );
+    return ( found && ChangeDisplaySettings( &DevMode, 0 ) == DISP_CHANGE_SUCCESSFUL );
 }
 
 void ResetScreenMode()
