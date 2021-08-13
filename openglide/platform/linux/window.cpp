@@ -130,7 +130,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 XFree(fbc);
                 for (int i = 0; attrib[i]; i+=2) {
                     if (attrib[i] == GLX_BUFFER_SIZE) {
-                        attrib[i+1] = (fbattr)? fbattr:attrib[i+1];
+                        attrib[i+1] = (fbattr >= 24)? fbattr:attrib[i+1];
                         break;
                     }
                 }
