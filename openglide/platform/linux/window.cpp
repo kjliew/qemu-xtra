@@ -109,41 +109,50 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
         if (glXChooseFBConfig && glXGetVisualFromFBConfig)
         {
-            static const int attrib[] =
+            static int attrib[] =
             {
                   GLX_X_RENDERABLE    , True,
                   GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
                   GLX_RENDER_TYPE     , GLX_RGBA_BIT,
                   GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-                  GLX_RED_SIZE        , 8,
-                  GLX_GREEN_SIZE      , 8,
-                  GLX_BLUE_SIZE       , 8,
+                  GLX_BUFFER_SIZE     , 32,
                   GLX_DEPTH_SIZE      , 24,
                   GLX_STENCIL_SIZE    , 8,
                   GLX_DOUBLEBUFFER    , True,
                   None
             };
 
-            int oml_swap, fbid, elements;
-            GLXFBConfig *fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrib, &elements);
+            int fbattr, elements;
+            GLXFBConfig *fbc = glXGetFBConfigs(dpy, DefaultScreen(dpy), &elements);
+            if (fbc && elements) {
+                fbattr = 0;
+                glXGetFBConfigAttrib(dpy, *fbc, GLX_BUFFER_SIZE, &fbattr);
+                XFree(fbc);
+                for (int i = 0; attrib[i]; i+=2) {
+                    if (attrib[i] == GLX_BUFFER_SIZE) {
+                        attrib[i+1] = (fbattr)? fbattr:attrib[i+1];
+                        break;
+                    }
+                }
+            }
+            fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrib, &elements);
             if (fbc && elements)
             {
                 static const char *swapMethod[] = {
                     "swapNone", "swapXChg", "swapCpy", "swapUndef"
                 };
+                int swapattr = 0;
                 if (find_xstr(xstr, "GLX_OML_swap_method"))
-                    glXGetFBConfigAttrib(dpy, *fbc, GLX_SWAP_METHOD_OML, &oml_swap);
-                else
-                    oml_swap = 0;
-                glXGetFBConfigAttrib(dpy, *fbc, GLX_FBCONFIG_ID, &fbid);
+                    glXGetFBConfigAttrib(dpy, *fbc, GLX_SWAP_METHOD_OML, &swapattr);
+                glXGetFBConfigAttrib(dpy, *fbc, GLX_FBCONFIG_ID, &fbattr);
                 visinfo = glXGetVisualFromFBConfig(dpy, *fbc);
+                XFree(fbc);
                 if (visinfo) {
-                    buffer_method = (oml_swap == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
-                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s\n", fbid,
-                        visinfo->visualid, swapMethod[(oml_swap & 0x3)]);
+                    buffer_method = (swapattr == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
+                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s\n", fbattr,
+                        visinfo->visualid, swapMethod[(swapattr & 0x3)]);
                 }
             }
-            XFree(fbc);
         }
     }
 #endif
