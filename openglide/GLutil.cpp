@@ -274,6 +274,7 @@ void GetOptions( void )
     UserConfig.EXT_fog_coord                = true;
     UserConfig.EXT_blend_func_separate      = false;
     UserConfig.Wrap565to5551                = true;
+    UserConfig.FramebufferSRGB              = false;
 
     UserConfig.Resolution                   = 0;
 
@@ -310,6 +311,7 @@ void GetOptions( void )
         fprintf( IniFile, "EnableMipMaps=%d\n", UserConfig.EnableMipMaps );
         fprintf( IniFile, "IgnorePaletteChange=%d\n", UserConfig.IgnorePaletteChange );
         fprintf( IniFile, "Wrap565to5551=%d\n", UserConfig.Wrap565to5551 );
+        fprintf( IniFile, "FramebufferSRGB=%d\n", UserConfig.FramebufferSRGB );
         fprintf( IniFile, "EnablePrecisionFix=%d\n", UserConfig.PrecisionFix );
         fprintf( IniFile, "EnableMultiTextureEXT=%d\n", UserConfig.ARB_multitexture );
         fprintf( IniFile, "EnablePaletteEXT=%d\n", UserConfig.EXT_paletted_texture );
@@ -350,6 +352,8 @@ void GetOptions( void )
                 UserConfig.Priority = atoi( Pointer );
             if ( (Pointer = FindConfig(Path, "Wrap565to5551")) )
                 UserConfig.Wrap565to5551 = atoi( Pointer ) ? true : false;
+            if ( (Pointer = FindConfig(Path, "FramebufferSRGB")) )
+                UserConfig.FramebufferSRGB = atoi( Pointer ) ? true : false;
             if ( (Pointer = FindConfig(Path, "FrameBufferMemorySize")) )
                 UserConfig.FrameBufferMemorySize = atoi( Pointer );
             if ( (Pointer = FindConfig(Path, "NoSplash")) )
@@ -370,6 +374,8 @@ FX_ENTRY void FX_CALL setConfig(FxU32 flags)
 {
     UserConfig.EnableMipMaps = (UserConfig.EnableMipMaps == 0)?
         ((flags & WRAPPER_FLAG_MIPMAPS) != 0):UserConfig.EnableMipMaps;
+    UserConfig.FramebufferSRGB = (UserConfig.FramebufferSRGB == 0)?
+        ((flags & WRAPPER_FLAG_FRAMEBUFFER_SRGB) != 0):UserConfig.FramebufferSRGB;
     UserConfig.VsyncOff = ((flags & WRAPPER_FLAG_VSYNCOFF) != 0);
     UserConfig.QEmu = ((flags & WRAPPER_FLAG_QEMU) != 0);
     UserConfig.InitFullScreen = (flags & WRAPPER_FLAG_WINDOWED)? false:true;

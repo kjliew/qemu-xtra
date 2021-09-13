@@ -269,6 +269,7 @@ struct ConfigStruct
     bool    BuildMipMaps;
     bool    IgnorePaletteChange;
     bool    Wrap565to5551;
+    bool    FramebufferSRGB;
     bool    TextureEnv;
     bool    CreateWindow;
 

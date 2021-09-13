@@ -55,13 +55,16 @@ static std::vector<XColor>         xcolors;
 
 static int find_xstr(const char *xstr, const char *str)
 {
-    int ret = 0;
-    char sbuf[1024], *stok;
-    if (xstr)
-        strncpy(sbuf, xstr, 1024);
+    int xlen, ret = 0;
+    std::vector<char> sbuf;
+    char *stok;
+    if (xstr) {
+        sbuf.resize(strnlen(xstr, (3*4096)));
+        strncpy(&sbuf[0], xstr, sbuf.size());
+    }
     else
-        memset(sbuf, 0, 1024);
-    stok = strtok(sbuf, " ");
+        sbuf.clear();
+    stok = strtok(&sbuf[0], " ");
     while (stok) {
         if (!strncmp(stok, str, strnlen(str, 64))) {
             ret = 1;
@@ -80,6 +83,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     XVisualInfo *visinfo = 0;
     XSetWindowAttributes attr;
     unsigned long mask;
+    int has_sRGB;
 
     if (!(dpy = XOpenDisplay(NULL)))
     {
@@ -142,6 +146,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                     "swapNone", "swapXChg", "swapCpy", "swapUndef"
                 };
                 int swapattr = 0;
+                has_sRGB = UserConfig.FramebufferSRGB;
                 if (find_xstr(xstr, "GLX_OML_swap_method"))
                     glXGetFBConfigAttrib(dpy, *fbc, GLX_SWAP_METHOD_OML, &swapattr);
                 glXGetFBConfigAttrib(dpy, *fbc, GLX_FBCONFIG_ID, &fbattr);
@@ -149,8 +154,8 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 XFree(fbc);
                 if (visinfo) {
                     buffer_method = (swapattr == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
-                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s\n", fbattr,
-                        visinfo->visualid, swapMethod[(swapattr & 0x3)]);
+                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s %s\n", fbattr,
+                        visinfo->visualid, swapMethod[(swapattr & 0x3)], (has_sRGB)? "sRGB":"");
                 }
             }
         }
@@ -180,7 +185,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     {   // Determine presence of video mode extension
         int major = 0, minor = 0;
-        vidmode_ext = XF86VidModeQueryExtension (dpy, &major, &minor) != 0;
+        vidmode_ext = ((XF86VidModeQueryExtension (dpy, &major, &minor) != 0) && !has_sRGB);
     }
         
     if (vidmode_ext && UserConfig.InitFullScreen)
@@ -319,6 +324,9 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         else
             aux_buffer = (GLfloat*) malloc (sizeof(*aux_buffer) * width * height * 3/*RGB*/);
     }
+
+    if (has_sRGB && UserConfig.FramebufferSRGB)
+        glEnable(GL_FRAMEBUFFER_SRGB);
 
     UserConfig.PrecisionFix = false;
     return true;
