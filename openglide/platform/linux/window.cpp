@@ -185,7 +185,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     {   // Determine presence of video mode extension
         int major = 0, minor = 0;
-        vidmode_ext = ((XF86VidModeQueryExtension (dpy, &major, &minor) != 0) && !has_sRGB);
+        vidmode_ext = XF86VidModeQueryExtension (dpy, &major, &minor) != 0;
     }
         
     if (vidmode_ext && UserConfig.InitFullScreen)
@@ -207,29 +207,31 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
             if (!XF86VidModeGetGammaRamp(dpy, scrnum, size, red, green, blue))
                 gammaRamp.clear ();
+            if (has_sRGB)
+                gammaRamp.clear ();
 
             switch (size) {
                 case 0x100:
-                for (int i = 0; i < size; i++) {
-                    *red++   = (unsigned short)(((i << 8) | i) & 0xFFFFU);
-                    *green++ = (unsigned short)(((i << 8) | i) & 0xFFFFU);
-                    *blue++  = (unsigned short)(((i << 8) | i) & 0xFFFFU);
-                }
-                break;
+                    for (int i = 0; i < size; i++) {
+                        *red++   = (unsigned short)(((i << 8) | i) & 0xFFFFU);
+                        *green++ = (unsigned short)(((i << 8) | i) & 0xFFFFU);
+                        *blue++  = (unsigned short)(((i << 8) | i) & 0xFFFFU);
+                    }
+                    break;
                 case 0x400:
-                for (int i = 0; i < size; i++) {
-                    *red++   = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
-                    *green++ = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
-                    *blue++  = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
-                }
-                break;
+                    for (int i = 0; i < size; i++) {
+                        *red++   = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
+                        *green++ = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
+                        *blue++  = (unsigned short)(((i << 6) | (((i << 6) & 0xFC00U) >> 10)) & 0xFFFFU);
+                    }
+                    break;
                 case 0x800:
-                for (int i = 0; i < size; i++) {
-                    *red++   = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
-                    *green++ = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
-                    *blue++  = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
-                }
-                break;
+                    for (int i = 0; i < size; i++) {
+                        *red++   = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
+                        *green++ = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
+                        *blue++  = (unsigned short)(((i << 5) | (((i << 5) & 0xF800U) >> 11)) & 0xFFFFU);
+                    }
+                    break;
             }
         }
     }
@@ -419,11 +421,13 @@ void SetGammaTable(void *ptbl)
         unsigned short g[256];
         unsigned short b[256];
     } *ramp_ptr = (struct s_ramp *) ptbl;
-    unsigned short *red = &gammaRamp[0];
+    unsigned short *red = &gammaRamp[0] + (3 * size);
     unsigned short *green = red + size;
     unsigned short *blue = green + size;
 
     switch (size) {
+        case 0:
+            return;
         case 0x100:
             memcpy(red,   ramp_ptr->r, size);
             memcpy(green, ramp_ptr->g, size);
@@ -478,13 +482,15 @@ void GetGammaTable(void *ptbl)
         unsigned short g[256];
         unsigned short b[256];
     } *ramp_ptr = (struct s_ramp *) ptbl;
-    unsigned short *red = &gammaRamp[0];
+    unsigned short *red = &gammaRamp[0] + (3 * size);
     unsigned short *green = red + size;
     unsigned short *blue = green + size;
     if (size)
         XF86VidModeGetGammaRamp(dpy, scrnum, size, red, green, blue);
 
     switch (size) {
+        case 0:
+            break;
         case 0x100:
             memcpy(ramp_ptr->r,   red, size);
             memcpy(ramp_ptr->g, green, size);
