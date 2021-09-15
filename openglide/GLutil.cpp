@@ -280,6 +280,7 @@ void GetOptions( void )
 
     UserConfig.TextureMemorySize            = 16;
     UserConfig.FrameBufferMemorySize        = 8;
+    UserConfig.SamplesMSAA                  = 0;
 
     UserConfig.Priority                     = 2;
 
@@ -318,6 +319,7 @@ void GetOptions( void )
         fprintf( IniFile, "EnableVertexArrayEXT=%d\n", UserConfig.EXT_vertex_array );
         fprintf( IniFile, "TextureMemorySize=%d\n", UserConfig.TextureMemorySize );
         fprintf( IniFile, "FrameBufferMemorySize=%d\n", UserConfig.FrameBufferMemorySize );
+        fprintf( IniFile, "SamplesMSAA=%d\n", UserConfig.SamplesMSAA );
         fprintf( IniFile, "NoSplash=%d\n", UserConfig.NoSplash );
         fclose( IniFile );
     }
@@ -356,6 +358,8 @@ void GetOptions( void )
                 UserConfig.FramebufferSRGB = atoi( Pointer ) ? true : false;
             if ( (Pointer = FindConfig(Path, "FrameBufferMemorySize")) )
                 UserConfig.FrameBufferMemorySize = atoi( Pointer );
+            if ( (Pointer = FindConfig(Path, "SamplesMSAA")) )
+                UserConfig.SamplesMSAA = atoi( Pointer );
             if ( (Pointer = FindConfig(Path, "NoSplash")) )
                 UserConfig.NoSplash = atoi( Pointer ) ? true : false;;
             if ( (Pointer = FindConfig(Path, "ShamelessPlug")) )

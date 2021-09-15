@@ -259,6 +259,7 @@ struct ConfigStruct
     int     Priority;
     int     TextureMemorySize;
     int     FrameBufferMemorySize;
+    int     SamplesMSAA;
 
     float   Resolution;
 

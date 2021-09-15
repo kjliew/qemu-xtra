@@ -327,7 +327,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             aux_buffer = (GLfloat*) malloc (sizeof(*aux_buffer) * width * height * 3/*RGB*/);
     }
 
-    if (has_sRGB && UserConfig.FramebufferSRGB)
+    if (has_sRGB)
         glEnable(GL_FRAMEBUFFER_SRGB);
 
     UserConfig.PrecisionFix = false;

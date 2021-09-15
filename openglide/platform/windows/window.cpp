@@ -22,6 +22,8 @@
 #include "GlOgl.h"
 
 #include "platform/window.h"
+#include <GL/glext.h>
+#include <GL/wgl.h>
 
 static HDC   hDC;
 static HGLRC hRC;
@@ -52,23 +54,21 @@ static LONG WINAPI GlideWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-static HWND CreateGlideWindow(const char *title, int w, int h)
+static HWND CreateGlideWindow(const char *title, int w, int h, int show)
 {
     HWND 	hWnd;
     WNDCLASS 	wc;
-    static HINSTANCE hInstance = 0;
+    HINSTANCE   hInstance = GetModuleHandle(0);
 
-    if (!hInstance) {
-	memset(&wc, 0, sizeof(WNDCLASS));
-	hInstance = GetModuleHandle(NULL);
-	wc.style	= CS_OWNDC;
-	wc.lpfnWndProc	= (WNDPROC)GlideWndProc;
-	wc.lpszClassName = "GlideWnd";
+    memset(&wc, 0, sizeof(WNDCLASS));
+    wc.hInstance = hInstance;
+    wc.style	= CS_OWNDC;
+    wc.lpfnWndProc	= (WNDPROC)GlideWndProc;
+    wc.lpszClassName = title;
 
-	if (!RegisterClass(&wc)) {
-	    DPRINTF("RegisterClass() faled, Error %08lx\n", GetLastError());
-	    return NULL;
-	}
+    if (!RegisterClass(&wc)) {
+        DPRINTF("RegisterClass() faled, Error %08lx", GetLastError());
+        return NULL;
     }
     
     RECT rect;
@@ -78,16 +78,53 @@ static HWND CreateGlideWindow(const char *title, int w, int h)
     rect.right  -= rect.left;
     rect.bottom -= rect.top;
     hWnd = CreateWindowEx(WS_EX_TOPMOST | WS_EX_NOACTIVATE,
-	    "GlideWnd", title, 
+	    title, title,
 	    WS_CAPTION | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 	    CW_USEDEFAULT, CW_USEDEFAULT, rect.right, rect.bottom,
 	    NULL, NULL, hInstance, NULL);
-    GetClientRect(hWnd, &rect);
-    DPRINTF("    window %lux%lu\n", rect.right, rect.bottom);
-    ShowCursor(FALSE);
-    ShowWindow(hWnd, SW_SHOW);
+    if (show) {
+        GetClientRect(hWnd, &rect);
+        DPRINTF("    window %lux%lu", rect.right, rect.bottom);
+        ShowCursor(FALSE);
+        ShowWindow(hWnd, SW_SHOW);
+    }
 
     return hWnd;
+}
+
+static int *iattribs_fb(const int do_msaa)
+{
+    static int ia[] = {
+        WGL_DRAW_TO_WINDOW_ARB, 1,
+        WGL_SUPPORT_OPENGL_ARB, 1,
+        WGL_DOUBLE_BUFFER_ARB, 1,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+        WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
+        WGL_COLOR_BITS_ARB, 32,
+        WGL_DEPTH_BITS_ARB, 24,
+        WGL_ALPHA_BITS_ARB, 8,
+        WGL_STENCIL_BITS_ARB, 8,
+        WGL_SAMPLE_BUFFERS_ARB, 0,
+        WGL_SAMPLES_ARB, 0,
+        WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, 0,
+        0,0,
+    };
+    for (int i = 0; ia[i]; i+=2) {
+        switch(ia[i]) {
+            case WGL_SAMPLE_BUFFERS_ARB:
+                ia[i+1] = (do_msaa)? 1:0;
+                break;
+            case WGL_SAMPLES_ARB:
+                ia[i+1] = (do_msaa)? do_msaa:0;
+                break;
+            case WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB:
+                ia[i+1] = (UserConfig.FramebufferSRGB)? 1:0;
+                break;
+            default:
+                break;
+        }
+    }
+    return ia;
 }
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
@@ -103,7 +140,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     if ( hwnd == NULL )
     {
-        hwnd = CreateGlideWindow("GlideWnd", width, height);
+        hwnd = CreateGlideWindow("GlideWnd", width, height, 1);
         if ( hwnd == NULL ) {
             MessageBox( NULL, "Failed to create window", "Error", MB_OK );
             exit( 1 );
@@ -160,13 +197,45 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     pfd.cAlphaBits   = 8;
     pfd.cStencilBits = 8;
 
+    HWND tmpWnd = CreateGlideWindow("dummy", 320, 200, 0);
+    HDC tmpDC = GetDC(tmpWnd);
+    SetPixelFormat(tmpDC, ChoosePixelFormat(tmpDC, &pfd), &pfd);
+    HGLRC tmpGL = wglCreateContext(tmpDC);
+    wglMakeCurrent(tmpDC, tmpGL);
+
+    BOOL (WINAPI *p_wglGetPixelFormatAttribivARB)(HDC, int, int, UINT, const int *, int *) =
+        (BOOL (WINAPI *)(HDC, int, int, UINT, const int *, int *))wglGetProcAddress("wglGetPixelFormatAttribivARB");
+    BOOL (WINAPI *p_wglChoosePixelFormatARB)(HDC, const int *, const float *, UINT, int *, UINT *) =
+        (BOOL (WINAPI *)(HDC, const int *, const float *, UINT, int *, UINT *))wglGetProcAddress("wglChoosePixelFormatARB");
+
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(tmpGL);
+    ReleaseDC(tmpWnd, tmpDC);
+    DestroyWindow(tmpWnd);
+    UnregisterClass("dummy", GetModuleHandle(0));
+
     if ( !( PixFormat = GetPixelFormat(hDC))) {
-        if ( !( PixFormat = ChoosePixelFormat( hDC, &pfd ) ) )
-        {
-            MessageBox( NULL, "ChoosePixelFormat() failed:  "
-                        "Cannot find a suitable pixel format.", "Error", MB_OK );
-            exit( 1 );
-        } 
+        if (p_wglChoosePixelFormatARB) {
+            static const float fa[] = {0, 0};
+            int *ia = iattribs_fb(UserConfig.SamplesMSAA);
+            int pi[64]; UINT nFmts = 0;
+            BOOL status = p_wglChoosePixelFormatARB(hDC, ia, fa, 64, pi, &nFmts);
+            if (UserConfig.SamplesMSAA && !nFmts) {
+                ia = iattribs_fb(0);
+                status = p_wglChoosePixelFormatARB(hDC, ia, fa, 64, pi, &nFmts);
+            }
+            PixFormat = (status && nFmts)? pi[0]:0;
+        }
+
+        if (!PixFormat) {
+            fprintf(stderr, "    Fallback to legacy OpenGL context creation\n");
+            if ( !( PixFormat = ChoosePixelFormat( hDC, &pfd ) ) )
+            {
+                MessageBox( NULL, "ChoosePixelFormat() failed:  "
+                            "Cannot find a suitable pixel format.", "Error", MB_OK );
+                exit( 1 );
+            }
+        }
 
         // the window must have WS_CLIPCHILDREN and WS_CLIPSIBLINGS for this call to
         // work correctly, so we SHOULD set this attributes, not doing that yet
@@ -184,6 +253,21 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     GlideMsg( "ColorBits	= %d\n", pfd.cColorBits );
     GlideMsg( "DepthBits	= %d\n", pfd.cDepthBits );
 
+    if (p_wglGetPixelFormatAttribivARB) {
+        static const int iattr[] = {
+            WGL_AUX_BUFFERS_ARB,
+            WGL_SAMPLE_BUFFERS_ARB,
+            WGL_SAMPLES_ARB,
+            WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB,
+        };
+        int cattr[4];
+        p_wglGetPixelFormatAttribivARB(hDC, PixFormat, 0, 4, iattr, cattr);
+        cattr[3] = (cattr[3] && UserConfig.FramebufferSRGB)? 1:0;
+        UserConfig.FramebufferSRGB = cattr[3] != 0;
+        fprintf(stderr, "    PixFmt 0x%02x nAux %d nSamples %d %d %s\n", PixFormat,
+            cattr[0], cattr[1], cattr[2], (cattr[3])? "sRGB":"");
+    }
+
     if ( pfd.cDepthBits > 16 )
     {
         UserConfig.PrecisionFix = false;
@@ -199,6 +283,9 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         if (SwapIntervalEXT)
             SwapIntervalEXT(swapInterval);
     }
+
+    if (UserConfig.FramebufferSRGB)
+        glEnable(GL_FRAMEBUFFER_SRGB);
 
     // ramp_stored = GetDeviceGammaRamp( pDC, &old_ramp );
     for (int i = 0; i < 0x100; i++) {
@@ -256,7 +343,7 @@ void SetGammaTable(void *ptbl)
         wglGetProcAddress("wglSetDeviceGammaRamp3DFX");
     if (SetGammaExt)
         SetGammaExt( pDC, ptbl );
-    else
+    else if (!UserConfig.FramebufferSRGB)
     SetDeviceGammaRamp( pDC, ptbl );
     ReleaseDC( NULL, pDC );
 }
