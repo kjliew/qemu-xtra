@@ -380,6 +380,8 @@ FX_ENTRY void FX_CALL setConfig(FxU32 flags)
         ((flags & WRAPPER_FLAG_MIPMAPS) != 0):UserConfig.EnableMipMaps;
     UserConfig.FramebufferSRGB = (UserConfig.FramebufferSRGB == 0)?
         ((flags & WRAPPER_FLAG_FRAMEBUFFER_SRGB) != 0):UserConfig.FramebufferSRGB;
+    UserConfig.SamplesMSAA = (UserConfig.SamplesMSAA == 0)?
+        ((flags & WRAPPER_FLAG_MSAA_MASK)? (1 << ((flags & WRAPPER_FLAG_MSAA_MASK) >> 2)):0):UserConfig.SamplesMSAA;
     UserConfig.VsyncOff = ((flags & WRAPPER_FLAG_VSYNCOFF) != 0);
     UserConfig.QEmu = ((flags & WRAPPER_FLAG_QEMU) != 0);
     UserConfig.InitFullScreen = (flags & WRAPPER_FLAG_WINDOWED)? false:true;

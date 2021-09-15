@@ -53,6 +53,47 @@ static const char               *xstr;
 static std::vector<unsigned short> gammaRamp;
 static std::vector<XColor>         xcolors;
 
+static int *iattribs_fb(Display *dpy, const int do_msaa)
+{
+    static int ia[] = {
+        GLX_X_RENDERABLE    , True,
+        GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
+        GLX_RENDER_TYPE     , GLX_RGBA_BIT,
+        GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
+        GLX_BUFFER_SIZE     , 32,
+        GLX_DEPTH_SIZE      , 24,
+        GLX_STENCIL_SIZE    , 8,
+        GLX_DOUBLEBUFFER    , True,
+        GLX_SAMPLE_BUFFERS  , 0,
+        GLX_SAMPLES         , 0,
+        None
+    };
+
+    int nElem, cBufsz = 0;
+    GLXFBConfig *currFB = glXGetFBConfigs(dpy, DefaultScreen(dpy), &nElem);
+    if (currFB && nElem) {
+        glXGetFBConfigAttrib(dpy, currFB[0], GLX_BUFFER_SIZE, &cBufsz);
+        XFree(currFB);
+    }
+
+    for (int i = 0; ia[i]; i+=2) {
+        switch(ia[i]) {
+            case GLX_BUFFER_SIZE:
+                ia[i+1] = (cBufsz >= 24)? cBufsz:ia[i+1];
+                break;
+            case GLX_SAMPLE_BUFFERS:
+                ia[i+1] = (do_msaa)? 1:0;
+                break;
+            case GLX_SAMPLES:
+                ia[i+1] = (do_msaa)? do_msaa:0;
+                break;
+            default:
+                break;
+        }
+    }
+    return ia;
+}
+
 static int find_xstr(const char *xstr, const char *str)
 {
     int xlen, ret = 0;
@@ -113,51 +154,37 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
         if (glXChooseFBConfig && glXGetVisualFromFBConfig)
         {
-            static int attrib[] =
-            {
-                  GLX_X_RENDERABLE    , True,
-                  GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-                  GLX_RENDER_TYPE     , GLX_RGBA_BIT,
-                  GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-                  GLX_BUFFER_SIZE     , 32,
-                  GLX_DEPTH_SIZE      , 24,
-                  GLX_STENCIL_SIZE    , 8,
-                  GLX_DOUBLEBUFFER    , True,
-                  None
-            };
-
-            int fbattr, elements;
-            GLXFBConfig *fbc = glXGetFBConfigs(dpy, DefaultScreen(dpy), &elements);
-            if (fbc && elements) {
-                fbattr = 0;
-                glXGetFBConfigAttrib(dpy, *fbc, GLX_BUFFER_SIZE, &fbattr);
-                XFree(fbc);
-                for (int i = 0; attrib[i]; i+=2) {
-                    if (attrib[i] == GLX_BUFFER_SIZE) {
-                        attrib[i+1] = (fbattr >= 24)? fbattr:attrib[i+1];
-                        break;
-                    }
-                }
+            int fbattr, elements, *attrib = iattribs_fb(dpy, UserConfig.SamplesMSAA);
+            GLXFBConfig *fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrib, &elements);
+            if (UserConfig.SamplesMSAA && !fbc && !elements) {
+                attrib = iattribs_fb(dpy, 0);
+                fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrib, &elements);
             }
-            fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrib, &elements);
             if (fbc && elements)
             {
                 static const char *swapMethod[] = {
                     "swapNone", "swapXChg", "swapCpy", "swapUndef"
                 };
                 int swapattr = 0;
+                int nAux, nSamples[2];
                 has_sRGB = UserConfig.FramebufferSRGB;
                 if (find_xstr(xstr, "GLX_OML_swap_method"))
                     glXGetFBConfigAttrib(dpy, *fbc, GLX_SWAP_METHOD_OML, &swapattr);
                 glXGetFBConfigAttrib(dpy, *fbc, GLX_FBCONFIG_ID, &fbattr);
+                glXGetFBConfigAttrib(dpy, *fbc, GLX_AUX_BUFFERS, &nAux);
+                glXGetFBConfigAttrib(dpy, *fbc, GLX_SAMPLE_BUFFERS, &nSamples[0]);
+                glXGetFBConfigAttrib(dpy, *fbc, GLX_SAMPLES, &nSamples[1]);
                 visinfo = glXGetVisualFromFBConfig(dpy, *fbc);
                 XFree(fbc);
                 if (visinfo) {
                     buffer_method = (swapattr == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
-                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s %s\n", fbattr,
-                        visinfo->visualid, swapMethod[(swapattr & 0x3)], (has_sRGB)? "sRGB":"");
+                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s nAux %d nSamples %d %d %s\n",
+                        fbattr, visinfo->visualid, swapMethod[(swapattr & 0x3)],
+                        nAux, nSamples[0], nSamples[1], (has_sRGB)? "sRGB":"");
                 }
             }
+            else
+                fprintf(stderr, "    Fallback to glXChooseVisual()\n");
         }
     }
 #endif
