@@ -36,6 +36,7 @@ static SDL_Window *window;
 static SDL_Renderer *render;
 static SDL_GLContext context;
 static bool self_wnd;
+static bool self_ctx;
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 {
@@ -57,6 +58,10 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         window = (SDL_Window *)wnd;
     }
     context = SDL_GL_GetCurrentContext();
+    if (!context) {
+        context = SDL_GL_CreateContext(window);
+        self_ctx = (context)? true:false;
+    }
     if (context) {
         int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits,
             nSamples[2], has_sRGB = UserConfig.FramebufferSRGB;
@@ -105,6 +110,11 @@ void FinaliseOpenGLWindow( void)
 {
     if ( ramp_stored )
         SetGammaTable(&old_ramp);
+    if ( self_ctx ) {
+        self_ctx = false;
+        SDL_GL_MakeCurrent(window, NULL);
+        SDL_GL_DeleteContext(context);
+    }
     if ( self_wnd ) {
         self_wnd = false;
         SDL_DestroyRenderer(render);
