@@ -25,123 +25,100 @@
 
 #include "platform/window.h"
 
-static struct
-{
-    Uint16 red[ 256 ];
-    Uint16 green[ 256 ];
-    Uint16 blue[ 256 ];
+static struct gamma_ramp {
+    uint16_t red[256];
+    uint16_t blue[256];
+    uint16_t green[256];
 } old_ramp;
+static bool ramp_stored;
 
-static bool ramp_stored  = false;
-static bool wasInit      = false;
+static SDL_Window *window;
+static SDL_Renderer *render;
+static SDL_GLContext context;
+static bool self_wnd;
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 {
-    bool FullScreen = UserConfig.InitFullScreen;
-    wasInit = SDL_WasInit(SDL_INIT_VIDEO)!=0;
-    if(!wasInit)
-    {
-        bool err = false;
-        char *oldWindowId = 0;
-        char windowId[40];
-
-        if (wnd)
-        {   // Set SDL window ID
-            sprintf (windowId, "SDL_WINDOWID=%ld", (long)wnd);
-            oldWindowId = getenv("SDL_WINDOWID");
-            if (oldWindowId)
-                oldWindowId = strdup(oldWindowId);
-            putenv(windowId);
+    if (!wnd) {
+        const char *title = "SDL2-OpenGLide";
+        uint32_t flags = (UserConfig.InitFullScreen)? SDL_WINDOW_FULLSCREEN_DESKTOP:0;
+        window = SDL_CreateWindow(title, x, y, width, height, flags);
+        if (window) {
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+            render = SDL_CreateRenderer(window, -1, 0);
         }
-
-        if (SDL_Init(SDL_INIT_VIDEO))
-        {
-            GlideMsg("Can't init SDL %s",SDL_GetError());
-            err = true;
-        }
-
-        if (wnd)
-        {   // Restore old value
-            if (!oldWindowId)
-                putenv("SDL_WINDOWID");
-            else
-            {
-                sprintf (windowId, "SDL_WINDOWID=%s", oldWindowId);
-                putenv(windowId);
-                free (oldWindowId);
-            }
-        }
-
-        if (err)
+        self_wnd = (window)? true:false;
+    }
+    else {
+        uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
+        if (!flags)
             return false;
-    } else {
-        SDL_Surface* tmpSurface = SDL_GetVideoSurface();
-        if (tmpSurface)
-        {
-            // Preserve window/fullscreen mode in SDL apps and override config file entry
-           (tmpSurface->flags&SDL_FULLSCREEN) ? (FullScreen = true) : (FullScreen = false);
+        self_wnd = false;
+        window = (SDL_Window *)wnd;
+    }
+    context = SDL_GL_GetCurrentContext();
+    if (context) {
+        int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits;
+        SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &cRedBits);
+        SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &cGreenBits);
+        SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &cBlueBits);
+        SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &cAlphaBits);
+        SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &cDepthBits);
+        SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &cStencilBits);
 
-            // When in fullscreen, render at the same resolution
-            if((FullScreen) && (UserConfig.Resolution < 1.0f)) {
-                // Oneday perhaps a proper support for widescreen and 5:4 displays?
-                if((float)tmpSurface->w/tmpSurface->h < 1.33f) {
-                    OpenGL.WindowWidth = width = tmpSurface->w;
-                    OpenGL.WindowHeight = height = tmpSurface->w * 3 / 4;
-                } else {
-                    OpenGL.WindowWidth = width = tmpSurface->h * 4 / 3;
-                    OpenGL.WindowHeight = height = tmpSurface->h;
-                }
-                UserConfig.Resolution = OpenGL.WindowWidth;
-            }
+        fprintf(stderr, "Info: %s OpenGL %s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
+        fprintf(stderr, "Info: Pixel Format ABGR%d%d%d%d D%2d S%d\n", cAlphaBits,cBlueBits, cGreenBits, cRedBits,
+                cDepthBits, cStencilBits);
+
+        if (UserConfig.InitFullScreen) {
+            int w, h;
+            SDL_GetWindowSize(window, &w, &h);
+            float r = (1.f * height) / width;
+            OpenGL.WindowWidth = w * r;
+            OpenGL.WindowHeight = h;
+            OpenGL.WindowOffset = (w - OpenGL.WindowWidth) >> 1;
+            UserConfig.Resolution = OpenGL.WindowWidth;
         }
-    } 
 
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        if (cDepthBits > 16)
+            UserConfig.PrecisionFix = false;
 
-    if((SDL_SetVideoMode(width, height, 32, FullScreen ? SDL_OPENGL|SDL_FULLSCREEN : SDL_OPENGL)) == 0)
-    {
-        GlideMsg("Video mode set failed: %s\n", SDL_GetError());
-        return false;
-    }
-
-    SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &height);
-    if ( height > 16 ) {
-        UserConfig.PrecisionFix = false;
-    }
-
-    if(SDL_GetGammaRamp(old_ramp.red, old_ramp.green, old_ramp.blue) != -1)
+        for (int i = 0; i < 0x100; i++) {
+            old_ramp.red[i]   = (uint16_t)(((i << 8) | i) & 0xFFFFU);
+            old_ramp.green[i] = (uint16_t)(((i << 8) | i) & 0xFFFFU);
+            old_ramp.blue[i]  = (uint16_t)(((i << 8) | i) & 0xFFFFU);
+        }
         ramp_stored = true;
 
-    return true;
+    }
+    return (context)? true:false;
 }
 
 void FinaliseOpenGLWindow( void)
 {
     if ( ramp_stored )
-        SDL_SetGammaRamp(old_ramp.red, old_ramp.green, old_ramp.blue);
-    if (!wasInit)
-        SDL_Quit();
+        SetGammaTable(&old_ramp);
+    if ( self_wnd ) {
+        self_wnd = false;
+        SDL_DestroyRenderer(render);
+        SDL_DestroyWindow(window);
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, 0);
+    }
+    context = 0;
+    window = 0;
 }
 
 void SetGamma(float value)
 {
-    struct
-    {
-        Uint16 red[256];
-        Uint16 green[256];
-        Uint16 blue[256];
-    } ramp;
-    int i;
+    struct gamma_ramp ramp;
 
-    for ( i = 0; i < 256; i++ )
-    {
-        Uint16 v = (Uint16)( 0xffff * pow( i / 255.0, 1.0 / value ) );
-
-        ramp.red[ i ] = ramp.green[ i ] = ramp.blue[ i ] = ( v & 0xff00 );
+    for (int i = 0; i < 0x100; i++) {
+        uint16_t v = (uint16_t)(0xFFFFU * pow(i / 255.f, 1.f / value));
+        ramp.red[i]   = v & 0xFF00U;
+        ramp.green[i] = v & 0xFF00U;
+        ramp.blue[i]  = v & 0xFF00U;
     }
-
-    SDL_SetGammaRamp(ramp.red, ramp.green, ramp.blue);
+    SetGammaTable(&ramp);
 }
 
 void RestoreGamma()
@@ -150,10 +127,16 @@ void RestoreGamma()
 
 void SetGammaTable(void *ptbl)
 {
+    struct gamma_ramp *ramp = (struct gamma_ramp *)ptbl;
+    if (window)
+        SDL_SetWindowGammaRamp(window, ramp->red, ramp->green, ramp->blue);
 }
 
 void GetGammaTable(void *ptbl)
 {
+    struct gamma_ramp *ramp = (struct gamma_ramp *)ptbl;
+    if (window)
+        SDL_GetWindowGammaRamp(window, ramp->red, ramp->green, ramp->blue);
 }
 
 bool SetScreenMode(int &xsize, int &ysize)
@@ -167,7 +150,11 @@ void ResetScreenMode()
 
 void SwapBuffers()
 {
-    SDL_GL_SwapBuffers();
+    if (self_wnd) {
+        SDL_Event e;
+        while(SDL_PollEvent(&e));
+    }
+    SDL_GL_SwapWindow(window);
 }
 
 #endif // C_USE_SDL

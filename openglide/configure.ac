@@ -51,7 +51,7 @@ AC_ARG_ENABLE(sdl,AC_HELP_STRING([--disable-sdl],[Disable SDL support]),,disable
 
 dnl Check for SDL
 if test x$disable_sdl = xno ; then
-    SDL_VERSION=1.2.0
+    SDL_VERSION=2.0.4
     AM_PATH_SDL($SDL_VERSION,
             have_sdl_lib=yes,
             AC_MSG_WARN([SDL version $SDL_VERSION not found!])
@@ -61,7 +61,7 @@ fi
 if test x$have_sdl_lib = xyes ; then
     AC_DEFINE(C_USE_SDL)
     # Don't need SDLmain since we're a library
-    LIBS="$LIBS ${SDL_LIBS/-lSDLmain/}"
+    LIBS="$LIBS ${SDL_LIBS/-lSDL2main/}"
     CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
 fi
 
@@ -91,7 +91,10 @@ case "$host" in
     *darwin*)
         osflag="__darwin__"
         CXXFLAGS="$CXXFLAGS -D__unix__ -D$osflag -I/opt/X11/include -I\$(top_srcdir) -I\$(top_srcdir)/platform/linux"
-        LIBS="$LIBS -L/opt/X11/lib -lX11 -lXxf86vm -lGL -lGLU -Wl,-framework,OpenGL"
+        LIBS="$LIBS -Wl,-framework,OpenGL"
+        if test x$have_sdl_lib != xyes ; then
+            LIBS="$LIBS -lGL -lGLU -L/opt/X11/lib -lX11 -lXxf86vm"
+        fi
         ;;
     *freebsd*)
         ;;

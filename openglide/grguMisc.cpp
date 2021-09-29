@@ -105,6 +105,8 @@ grClipWindow( FxU32 minx, FxU32 miny, FxU32 maxx, FxU32 maxy )
     OpenGL.ClipMaxX = OpenGL.WindowWidth * maxx / Glide.WindowWidth;
     OpenGL.ClipMinY = OpenGL.WindowHeight * miny / Glide.WindowHeight;
     OpenGL.ClipMaxY = OpenGL.WindowHeight * maxy / Glide.WindowHeight;
+    OpenGL.ClipMinX += OpenGL.WindowOffset;
+    OpenGL.ClipMaxX += OpenGL.WindowOffset;
 
     if ( ( Glide.State.ClipMinX != 0 ) || 
          ( Glide.State.ClipMinY != 0 ) ||

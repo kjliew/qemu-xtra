@@ -208,6 +208,7 @@ struct OpenGLStruct
     bool                    WinOpen;
     GLsizei                 WindowWidth;
     GLsizei                 WindowHeight;
+    GLsizei                 WindowOffset;
     FxU32                   WindowTotalPixels;
     GLfloat                 Gamma;
     GLfloat                 AlphaReferenceValue;

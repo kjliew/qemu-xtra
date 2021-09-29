@@ -123,7 +123,7 @@ void InitOpenGL( void )
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity( );
     glOrtho( 0, Glide.WindowWidth, 0, Glide.WindowHeight, OpenGL.ZNear, OpenGL.ZFar );
-    glViewport( 0, 0, OpenGL.WindowWidth, OpenGL.WindowHeight );
+    glViewport( OpenGL.WindowOffset, 0, OpenGL.WindowWidth, OpenGL.WindowHeight );
 
     glMatrixMode( GL_MODELVIEW );
     glLoadIdentity( );

@@ -308,6 +308,8 @@ grSstWinOpen(   FxU hwnd,
     OpenGL.ClipMinY = 0;
     OpenGL.ClipMaxX = OpenGL.WindowWidth;
     OpenGL.ClipMaxY = OpenGL.WindowHeight;
+    OpenGL.ClipMinX += OpenGL.WindowOffset;
+    OpenGL.ClipMaxX += OpenGL.WindowOffset;
     OpenGL.WindowTotalPixels = (FxU32)( OpenGL.WindowWidth * OpenGL.WindowHeight );
 
     Glide.State.ColorFormat = cformat;
@@ -573,7 +575,7 @@ grSstOrigin( GrOriginLocation_t  origin )
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity( );
         glOrtho( 0, Glide.WindowWidth, 0, Glide.WindowHeight, OpenGL.ZNear, OpenGL.ZFar );
-        glViewport( 0, 0, OpenGL.WindowWidth, OpenGL.WindowHeight );
+        glViewport( OpenGL.WindowOffset, 0, OpenGL.WindowWidth, OpenGL.WindowHeight );
         glMatrixMode( GL_MODELVIEW );
         break;
 
@@ -581,7 +583,7 @@ grSstOrigin( GrOriginLocation_t  origin )
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity( );
         glOrtho( 0, Glide.WindowWidth, Glide.WindowHeight, 0, OpenGL.ZNear, OpenGL.ZFar );
-        glViewport( 0, 0, OpenGL.WindowWidth, OpenGL.WindowHeight );
+        glViewport( OpenGL.WindowOffset, 0, OpenGL.WindowWidth, OpenGL.WindowHeight );
         glMatrixMode( GL_MODELVIEW );
         break;
     }
