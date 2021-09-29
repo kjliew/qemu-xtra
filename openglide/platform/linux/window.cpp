@@ -178,13 +178,13 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 XFree(fbc);
                 if (visinfo) {
                     buffer_method = (swapattr == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
-                    fprintf(stderr, "    FBConfig id 0x%03x visual 0x%03lx %s nAux %d nSamples %d %d %s\n",
+                    fprintf(stderr, "Info: FBConfig id 0x%03x visual 0x%03lx %s nAux %d nSamples %d %d %s\n",
                         fbattr, visinfo->visualid, swapMethod[(swapattr & 0x3)],
                         nAux, nSamples[0], nSamples[1], (has_sRGB)? "sRGB":"");
                 }
             }
             else
-                fprintf(stderr, "    Fallback to glXChooseVisual()\n");
+                fprintf(stderr, "Warn: Fallback to glXChooseVisual()\n");
         }
     }
 #endif

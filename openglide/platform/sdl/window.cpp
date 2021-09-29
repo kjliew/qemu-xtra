@@ -58,17 +58,21 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     }
     context = SDL_GL_GetCurrentContext();
     if (context) {
-        int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits;
+        int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits,
+            nSamples[2], has_sRGB = UserConfig.FramebufferSRGB;
         SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &cRedBits);
         SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &cGreenBits);
         SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &cBlueBits);
         SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &cAlphaBits);
         SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &cDepthBits);
         SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &cStencilBits);
+        SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &nSamples[0]);
+        SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &nSamples[1]);
 
         fprintf(stderr, "Info: %s OpenGL %s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
-        fprintf(stderr, "Info: Pixel Format ABGR%d%d%d%d D%2d S%d\n", cAlphaBits,cBlueBits, cGreenBits, cRedBits,
-                cDepthBits, cStencilBits);
+        fprintf(stderr, "Info: Pixel Format ABGR%d%d%d%d D%2dS%d nSamples %d %d %s\n",
+                cAlphaBits,cBlueBits, cGreenBits, cRedBits, cDepthBits, cStencilBits,
+                nSamples[0], nSamples[1], (has_sRGB)? "sRGB":"");
 
         if (UserConfig.InitFullScreen) {
             int w, h;
@@ -79,6 +83,9 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             OpenGL.WindowOffset = (w - OpenGL.WindowWidth) >> 1;
             UserConfig.Resolution = OpenGL.WindowWidth;
         }
+
+        if (has_sRGB)
+            glEnable(GL_FRAMEBUFFER_SRGB);
 
         if (cDepthBits > 16)
             UserConfig.PrecisionFix = false;

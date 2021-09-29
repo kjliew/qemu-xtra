@@ -224,7 +224,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         }
 
         if (!PixFormat) {
-            fprintf(stderr, "    Fallback to legacy OpenGL context creation\n");
+            fprintf(stderr, "Warn: Fallback to legacy OpenGL context creation\n");
             if ( !( PixFormat = ChoosePixelFormat( hDC, &pfd ) ) )
             {
                 MessageBox( NULL, "ChoosePixelFormat() failed:  "
@@ -260,7 +260,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         p_wglGetPixelFormatAttribivARB(hDC, PixFormat, 0, 4, iattr, cattr);
         cattr[3] = (cattr[3] && UserConfig.FramebufferSRGB)? 1:0;
         UserConfig.FramebufferSRGB = cattr[3] != 0;
-        fprintf(stderr, "    PixFmt 0x%02x nAux %d nSamples %d %d %s\n", PixFormat,
+        fprintf(stderr, "Info: PixFmt 0x%02x nAux %d nSamples %d %d %s\n", PixFormat,
             cattr[0], cattr[1], cattr[2], (cattr[3])? "sRGB":"");
     }
 
