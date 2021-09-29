@@ -152,8 +152,17 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                            GWL_STYLE, 
                            WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS );
             MoveWindow( hwnd, 0, 0, width, height, false );
+            mode_changed = SetScreenMode( width, height );
         }
-        mode_changed = SetScreenMode( width, height );
+        else {
+            RECT rect;
+            GetWindowRect(GetDesktopWindow(), &rect);
+            float r = (1.f * height) / width;
+            OpenGL.WindowWidth = rect.right * r;
+            OpenGL.WindowHeight = rect.bottom;
+            OpenGL.WindowOffset = (rect.right - OpenGL.WindowWidth) >> 1;
+            UserConfig.Resolution = OpenGL.WindowWidth;
+        }
     }
     else
     {

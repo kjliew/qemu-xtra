@@ -64,7 +64,7 @@ grLfbLock( GrLock_t dwType,
             // Reading pixels in one of the 565 modes is way slower than reading BGRA and converting to 565 later
             // This may change with new drivers/graphics hardware...
             // if anyone can show a faster way to read pixels, suggestions welcome :-)
-            glReadPixels( 0, 0,
+            glReadPixels( OpenGL.WindowOffset, 0,
                           OpenGL.WindowWidth, OpenGL.WindowHeight,
                           GL_BGRA, GL_UNSIGNED_BYTE,
                           (void *)OpenGL.tmpBuf );
@@ -136,7 +136,7 @@ grLfbLock( GrLock_t dwType,
         }
         else
         {   /* AUX/DEPTH read-back */
-            glReadPixels( 0, 0,
+            glReadPixels( OpenGL.WindowOffset, 0,
                           OpenGL.WindowWidth, OpenGL.WindowHeight,
                           GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT,
                           (void *)OpenGL.tmpBuf );

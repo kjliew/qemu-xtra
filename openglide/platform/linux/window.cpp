@@ -216,7 +216,21 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     }
         
     if (vidmode_ext && UserConfig.InitFullScreen)
+    {
+        if (UserConfig.QEmu) {
+            int vidCount;
+            XF86VidModeModeInfo **vidModes;
+            if (XF86VidModeGetAllModeLines(dpy, DefaultScreen(dpy), &vidCount, &vidModes)) {
+                float r = (1.f * height) / width;
+                OpenGL.WindowWidth = vidModes[0]->hdisplay * r;
+                OpenGL.WindowHeight = vidModes[0]->vdisplay;
+                OpenGL.WindowOffset = (vidModes[0]->hdisplay - OpenGL.WindowWidth) >> 1;
+                UserConfig.Resolution = OpenGL.WindowWidth;
+            }
+        }
+        else
         mode_changed = SetScreenMode( width, height );
+    }
 
     try
     {
