@@ -83,12 +83,17 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         if (UserConfig.InitFullScreen) {
             int w, h;
             SDL_GetWindowSize(window, &w, &h);
-            float r = (1.f * height) / width;
-            OpenGL.WindowWidth = w * r;
-            OpenGL.WindowHeight = h;
-            OpenGL.WindowOffset = (w - OpenGL.WindowWidth) >> 1;
-            UserConfig.Resolution = OpenGL.WindowWidth;
+            if (w > OpenGL.WindowWidth) {
+                float r = (1.f * height) / width;
+                OpenGL.WindowWidth = w * r;
+                OpenGL.WindowHeight = h;
+                OpenGL.WindowOffset = (w - OpenGL.WindowWidth) >> 1;
+                UserConfig.Resolution = OpenGL.WindowWidth;
+            }
         }
+
+        if (UserConfig.QEmu && UserConfig.VsyncOff)
+            SDL_GL_SetSwapInterval(0);
 
         if (has_sRGB)
             glEnable(GL_FRAMEBUFFER_SRGB);
