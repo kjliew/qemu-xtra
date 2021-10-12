@@ -162,7 +162,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             if (r == win_r) {
                 OpenGL.WindowWidth = rect.right;
                 OpenGL.WindowHeight = rect.bottom;
-                OpenGL.Offset = 0;
+                OpenGL.WindowOffset = 0;
             }
             else {
                 OpenGL.WindowWidth = rect.bottom / r;
