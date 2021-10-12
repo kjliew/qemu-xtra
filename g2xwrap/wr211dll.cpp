@@ -155,7 +155,18 @@ wrap_grSstOpen(
 FX_ENTRY void FX_CALL
 wrap_grSstPassthruMode( GrPassthruMode_t mode)
 {
-    grSstControl((mode)? 1:2);
+    GrControl_t code;
+    switch(mode) {
+        case GR_PASSTHRU_SHOW_VGA:
+            code = GR_CONTROL_DEACTIVATE;
+                break;
+        case GR_PASSTHRU_SHOW_SST1:
+            code = GR_CONTROL_ACTIVATE;
+                break;
+        default:
+                return;
+    }
+    grSstControl(code);
 }
 
 FX_ENTRY void FX_CALL

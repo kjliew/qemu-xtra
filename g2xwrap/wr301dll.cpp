@@ -139,14 +139,14 @@ FX_ENTRY void FX_CALL
 grEnable( GrEnableMode_t mode )
 {
     if (GR_PASSTHRU == mode)
-        grSstControl(GR_CONTROL_DEACTIVATE);
+        grSstControl(GR_CONTROL_ACTIVATE);
 }
 
 FX_ENTRY void FX_CALL 
 grDisable( GrEnableMode_t mode )
 {
     if (GR_PASSTHRU == mode)
-        grSstControl(GR_CONTROL_ACTIVATE);
+        grSstControl(GR_CONTROL_DEACTIVATE);
 }
 
 FX_ENTRY FxU32 FX_CALL
