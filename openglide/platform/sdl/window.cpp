@@ -84,10 +84,18 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             int w, h;
             SDL_GetWindowSize(window, &w, &h);
             if (w > OpenGL.WindowWidth) {
-                float r = (1.f * height) / width;
-                OpenGL.WindowWidth = w * r;
-                OpenGL.WindowHeight = h;
-                OpenGL.WindowOffset = (w - OpenGL.WindowWidth) >> 1;
+                float r = (1.f * height) / width,
+                      win_r = (1.f * h) / w;
+                if (r == win_r) {
+                    OpenGL.WindowWidth = w;
+                    OpenGL.WindowHeight = h;
+                    OpenGL.WindowOffset = 0;
+                }
+                else {
+                    OpenGL.WindowWidth = h / r;
+                    OpenGL.WindowHeight = h;
+                    OpenGL.WindowOffset = (w - OpenGL.WindowWidth) >> 1;
+                }
                 UserConfig.Resolution = OpenGL.WindowWidth;
             }
         }
@@ -151,7 +159,7 @@ void RestoreGamma()
 void SetGammaTable(void *ptbl)
 {
     struct gamma_ramp *ramp = (struct gamma_ramp *)ptbl;
-    if (window)
+    if (window && !UserConfig.FramebufferSRGB)
         SDL_SetWindowGammaRamp(window, ramp->red, ramp->green, ramp->blue);
 }
 

@@ -157,10 +157,18 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         else {
             RECT rect;
             GetWindowRect(GetDesktopWindow(), &rect);
-            float r = (1.f * height) / width;
-            OpenGL.WindowWidth = rect.right * r;
-            OpenGL.WindowHeight = rect.bottom;
-            OpenGL.WindowOffset = (rect.right - OpenGL.WindowWidth) >> 1;
+            float r = (1.f * height) / width,
+                  win_r = (1.f * rect.bottom) / rect.right;
+            if (r == win_r) {
+                OpenGL.WindowWidth = rect.right;
+                OpenGL.WindowHeight = rect.bottom;
+                OpenGL.Offset = 0;
+            }
+            else {
+                OpenGL.WindowWidth = rect.bottom / r;
+                OpenGL.WindowHeight = rect.bottom;
+                OpenGL.WindowOffset = (rect.right - OpenGL.WindowWidth) >> 1;
+            }
             UserConfig.Resolution = OpenGL.WindowWidth;
         }
     }
