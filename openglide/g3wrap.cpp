@@ -207,6 +207,9 @@ grGet( FxU32 pname, FxU32 plength, FxI32 *params )
             memset(params, 0, plength);
             ret = plength;
         }
+        if ((pname >= GR_STATS_LINES) &&
+            (pname < GR_SWAP_HISTORY)) { }
+        else
         DPRINTF("Unsupported grGet() pname=0x%02X plength=%d\n", pname, plength);
     }
 
