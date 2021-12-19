@@ -18,6 +18,40 @@
 #include <stdlib.h>
 #include <math.h>
 
+#if defined(WIN32)
+#define LOAD_SOLIB(x) \
+    x = LoadLibrary("SDL2.dll")
+#define FREE_SOLIB(x) \
+    FreeLibrary((HMODULE)x); x = 0
+#define INIT_SUBSS(x) \
+    InitSubSystem = (int (*)(const int))GetProcAddress((HMODULE)x, "SDL_InitSubSystem"); \
+    SetEnvironmentVariable("SDL_VIDEODRIVER", NULL)
+#define QUIT_SUBSS(x) \
+    QuitSubSystem = (void (*)(const int))GetProcAddress((HMODULE)x, "SDL_QuitSubSystem")
+#elif defined(__linux__) || defined(__darwin__)
+#include <dlfcn.h>
+#if defined(__linux__)
+#define LOAD_SOLIB(x) \
+    x = dlopen("libSDL2.so", RTLD_NOW)
+#else /* defined(__darwin__) */
+#define LOAD_SOLIB(x) \
+    x = dlopen("libSDL2.dylib", RTLD_NOW)
+#endif /* defined(__linux__) || defined(__darwin__) */
+#define FREE_SOLIB(x) \
+    dlclose(x); x = 0
+#define INIT_SUBSS(x) \
+    InitSubSystem = (int (*)(const int))dlsym(x, "SDL_InitSubSystem"); \
+    unsetenv("SDL_VIDEODRIVER")
+#define QUIT_SUBSS(x) \
+    QuitSubSystem = (void (*)(const int))dlsym(x, "SDL_QuitSubSystem")
+#else
+#define LOAD_SOLIB(x) \
+    InitSubSystem = 0
+#define FREE_SOLIB(x)
+#define INIT_SUBSS(x)
+#define QUIT_SUBSS(x)
+#endif
+
 #include "SDL.h"
 #include "SDL_opengl.h"
 
@@ -37,6 +71,8 @@ static SDL_Renderer *render;
 static SDL_GLContext context;
 static bool self_wnd;
 static bool self_ctx;
+static bool wnd_from;
+static void *hlib;
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 {
@@ -51,11 +87,31 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         self_wnd = (window)? true:false;
     }
     else {
-        uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
-        if (!flags)
-            return false;
-        self_wnd = false;
-        window = (SDL_Window *)wnd;
+        /* SDL_Window is a native pointer. On 64-bit system, native pointers
+         * should have more than 32-bit values. Windows HWND and X11 Window handles
+         * are always in 32-bit values.
+         *
+         * Apple macOS NSWindow pointer has bit[32] set.
+         */
+        if (!(wnd & ((uintptr_t)0xFFFE << 32))) {
+            int (*InitSubSystem)(const int);
+            LOAD_SOLIB(hlib);
+            INIT_SUBSS(hlib);
+            if (InitSubSystem && !InitSubSystem(SDL_INIT_VIDEO))
+                window = SDL_CreateWindowFrom((const void *)wnd);
+            if (window) {
+                SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+                render = SDL_CreateRenderer(window, -1, 0);
+            }
+            wnd_from = (window)? true:false;
+        }
+        else {
+            uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
+            if (!flags)
+                return false;
+            self_wnd = false;
+            window = (SDL_Window *)wnd;
+        }
     }
     context = SDL_GL_GetCurrentContext();
     if (!context) {
@@ -133,8 +189,17 @@ void FinaliseOpenGLWindow( void)
         self_wnd = false;
         SDL_DestroyRenderer(render);
         SDL_DestroyWindow(window);
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, 0);
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "0");
     }
+    if ( wnd_from ) {
+        wnd_from = false;
+        void (*QuitSubSystem)(const int);
+        QUIT_SUBSS(hlib);
+        SDL_DestroyRenderer(render);
+        QuitSubSystem(SDL_INIT_VIDEO);
+    }
+    if (hlib)
+        FREE_SOLIB(hlib);
     context = 0;
     window = 0;
 }
