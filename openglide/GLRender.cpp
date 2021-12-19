@@ -637,9 +637,9 @@ void RenderAddTriangle( const GrVertex *a, const GrVertex *b, const GrVertex *c,
         if ( Glide.State.FogMode == GR_FOG_WITH_TABLE )
 //        if ( Glide.State.FogMode & GR_FOG_WITH_TABLE )
         {
-            pF->af = (float)OpenGL.FogTable[ (FxU16)(1.0f / a->oow) ] * D1OVER255;
-            pF->bf = (float)OpenGL.FogTable[ (FxU16)(1.0f / b->oow) ] * D1OVER255;
-            pF->cf = (float)OpenGL.FogTable[ (FxU16)(1.0f / c->oow) ] * D1OVER255;
+            pF->af = (float)OpenGL.FogTable[ (a->oow)? (FxU16)(1.0f / a->oow):(OPENGLFOGTABLESIZE - 1) ] * D1OVER255;
+            pF->bf = (float)OpenGL.FogTable[ (b->oow)? (FxU16)(1.0f / b->oow):(OPENGLFOGTABLESIZE - 1) ] * D1OVER255;
+            pF->cf = (float)OpenGL.FogTable[ (c->oow)? (FxU16)(1.0f / c->oow):(OPENGLFOGTABLESIZE - 1) ] * D1OVER255;
         }
         else
         {
@@ -1108,8 +1108,8 @@ void RenderAddLine( const GrVertex *a, const GrVertex *b, bool unsnap )
 
     if ( InternalConfig.FogEnable )
     {
-        pF->af = (float)OpenGL.FogTable[ (FxU16)(1.0f / a->oow) ] * D1OVER255;
-        pF->bf = (float)OpenGL.FogTable[ (FxU16)(1.0f / b->oow) ] * D1OVER255;
+        pF->af = (float)OpenGL.FogTable[ (a->oow)? (FxU16)(1.0f / a->oow):(OPENGLFOGTABLESIZE - 1) ] * D1OVER255;
+        pF->bf = (float)OpenGL.FogTable[ (b->oow)? (FxU16)(1.0f / b->oow):(OPENGLFOGTABLESIZE - 1) ] * D1OVER255;
 
     #ifdef OGL_DEBUG
         DEBUG_MIN_MAX( pF->af, OGLRender.MaxF, OGLRender.MinF );
@@ -1495,7 +1495,7 @@ void RenderAddPoint( const GrVertex *a, bool unsnap )
 
     if( InternalConfig.FogEnable )
     {
-        pF->af = (float)OpenGL.FogTable[ (FxU16)(1.0f / a->oow) ] * D1OVER255;
+        pF->af = (float)OpenGL.FogTable[ (a->oow)? (FxU16)(1.0f / a->oow):(OPENGLFOGTABLESIZE - 1) ] * D1OVER255;
 
     #ifdef OGL_DEBUG
         DEBUG_MIN_MAX( pF->af, OGLRender.MaxF, OGLRender.MinF );
