@@ -23,6 +23,7 @@
 #include "platform.h"
 #include "platform/window.h"
 #include "platform/clock.h"
+#include "fgfont.h"
 
 // Configuration Variables
 ConfigStruct    UserConfig;
@@ -275,6 +276,7 @@ void GetOptions( void )
     UserConfig.EXT_blend_func_separate      = false;
     UserConfig.Wrap565to5551                = true;
     UserConfig.FramebufferSRGB              = false;
+    UserConfig.Annotate                     = false;
 
     UserConfig.Resolution                   = 0;
 
@@ -320,6 +322,7 @@ void GetOptions( void )
         fprintf( IniFile, "TextureMemorySize=%d\n", UserConfig.TextureMemorySize );
         fprintf( IniFile, "FrameBufferMemorySize=%d\n", UserConfig.FrameBufferMemorySize );
         fprintf( IniFile, "SamplesMSAA=%d\n", UserConfig.SamplesMSAA );
+        fprintf( IniFile, "Annotate=%d\n", UserConfig.Annotate );
         fprintf( IniFile, "NoSplash=%d\n", UserConfig.NoSplash );
         fclose( IniFile );
     }
@@ -360,6 +363,8 @@ void GetOptions( void )
                 UserConfig.FrameBufferMemorySize = atoi( Pointer );
             if ( (Pointer = FindConfig(Path, "SamplesMSAA")) )
                 UserConfig.SamplesMSAA = atoi( Pointer );
+            if ( (Pointer = FindConfig(Path, "Annotate")) )
+                UserConfig.Annotate = atoi( Pointer ) ? true : false;;
             if ( (Pointer = FindConfig(Path, "NoSplash")) )
                 UserConfig.NoSplash = atoi( Pointer ) ? true : false;;
             if ( (Pointer = FindConfig(Path, "ShamelessPlug")) )
@@ -373,6 +378,118 @@ void GetOptions( void )
     }
 }
 
+static struct {
+    uint64_t last;
+    uint32_t fcount;
+    float ftime;
+    int base;
+} fxstats = { .last = 0, .fcount = 0 };
+
+static void fgFontGenList(int first, int count, uint32_t listBase)
+{
+    const SFG_Font *font = &fgFontFixed8x13;
+    int org_alignment;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &org_alignment);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    for (int i = first; i < (first + count); i++) {
+        const unsigned char *face = font->Characters[i];
+        glNewList(listBase++, GL_COMPILE);
+        glBitmap(
+            face[ 0 ], font->Height,
+            font->xorig, font->yorig,
+            ( float )( face [ 0 ] ), 0.0,
+            ( face + 1 )
+        );
+        glEndList();
+    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, org_alignment);
+}
+
+static void drawstr(const char *str)
+{
+    const float colors[] = { 1.f, 1.f, 1.f };
+    const int rasterPos[] = { 13, 8 };
+
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, OpenGL.WindowWidth, 0, OpenGL.WindowHeight);
+
+    glPushAttrib(GL_LIGHTING_BIT | GL_CURRENT_BIT);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
+    if (Glide.State.DepthBufferMode != GR_DEPTHBUFFER_DISABLE)
+        glDisable(GL_DEPTH_TEST);
+
+    glListBase(fxstats.base);
+    glColor3fv(colors);
+    glRasterPos2iv(rasterPos);
+    glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);
+
+    if (Glide.State.DepthBufferMode != GR_DEPTHBUFFER_DISABLE)
+        glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
+    glPopAttrib();
+
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+#ifndef NANOSECONDS_PER_SECOND
+#define NANOSECONDS_PER_SECOND get_ticks_per_sec()
+static uint64_t get_ticks_per_sec(void) { return 1000000000LL; }
+#endif
+static uint64_t get_ticks_monotonic(void)
+{
+    struct timespec tp;
+    if (clock_gettime(CLOCK_MONOTONIC, &tp))
+        return -1;
+    return (tp.tv_sec * NANOSECONDS_PER_SECOND) + tp.tv_nsec;
+
+}
+void annotate_last(void)
+{
+    glDeleteLists(fxstats.base, 256);
+    fxstats.fcount = 0;
+    fxstats.last = 0;
+}
+
+void annotate_stat(void)
+{
+    static char stats_line[] = "xxxx frames in xxx.x seconds xxx.x FPS";
+    uint64_t curr;
+    int i;
+
+    if (fxstats.last == 0) {
+        if (fxstats.fcount == 0) {
+            fxstats.base = glGenLists(256);
+            fgFontGenList(0, 255, fxstats.base);
+            snprintf(stats_line, sizeof(stats_line), "%s", "Init ...");
+        }
+        fxstats.fcount = 0;
+        fxstats.ftime = 0;
+        fxstats.last = get_ticks_monotonic();
+        return;
+    }
+
+    if (UserConfig.Annotate) {
+        curr = get_ticks_monotonic();
+        fxstats.fcount++;
+        fxstats.ftime += (curr - fxstats.last) * (1.f / NANOSECONDS_PER_SECOND);
+        fxstats.last = curr;
+        i = (int)fxstats.ftime;
+        if (i && ((i % 5) == 0)) {
+            fxstats.last = 0;
+            snprintf(stats_line, sizeof(stats_line), "%-4u frames in %-4.1f seconds %-4.1f FPS",
+                fxstats.fcount, fxstats.ftime, fxstats.fcount / fxstats.ftime);
+        }
+        drawstr(stats_line);
+    }
+}
 
 FX_ENTRY void FX_CALL setConfig(FxU32 flags)
 {
@@ -382,6 +499,8 @@ FX_ENTRY void FX_CALL setConfig(FxU32 flags)
         ((flags & WRAPPER_FLAG_FRAMEBUFFER_SRGB) != 0):UserConfig.FramebufferSRGB;
     UserConfig.SamplesMSAA = (UserConfig.SamplesMSAA == 0)?
         ((flags & WRAPPER_FLAG_MSAA_MASK)? (1 << ((flags & WRAPPER_FLAG_MSAA_MASK) >> 2)):0):UserConfig.SamplesMSAA;
+    UserConfig.Annotate = (UserConfig.Annotate == 0)?
+        ((flags & WRAPPER_FLAG_ANNOTATE) != 0):UserConfig.Annotate;
     UserConfig.VsyncOff = ((flags & WRAPPER_FLAG_VSYNCOFF) != 0);
     UserConfig.QEmu = ((flags & WRAPPER_FLAG_QEMU) != 0);
     UserConfig.InitFullScreen = (flags & WRAPPER_FLAG_WINDOWED)? false:true;

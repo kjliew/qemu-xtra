@@ -288,6 +288,7 @@ struct ConfigStruct
 
     bool    NoSplash;
     bool    ShamelessPlug;
+    bool    Annotate;
     bool    VsyncOff;
     bool    QEmu;
 };
@@ -326,4 +327,6 @@ void InitOpenGL( void );
 void GetOptions( void );
 void InitMainVariables( void );
 
+void annotate_last(void);
+void annotate_stat(void);
 #endif

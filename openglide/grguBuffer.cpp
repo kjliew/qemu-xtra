@@ -104,6 +104,8 @@ grBufferSwap( int swap_interval )
 	Glide.DstBuffer.Lock = true;
     }
 
+    annotate_stat();
+
     SwapBuffers( );
 
 #ifdef OGL_DEBUG

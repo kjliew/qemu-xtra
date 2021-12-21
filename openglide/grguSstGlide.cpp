@@ -448,6 +448,8 @@ grSstWinClose( void )
 
     OpenGL.WinOpen = false;
 
+    annotate_last();
+
 #ifdef OGL_DEBUG
     GlideMsg( OGL_LOG_SEPARATE );
     GlideMsg( "** Debug Information **\n" );
