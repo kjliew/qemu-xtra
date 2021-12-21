@@ -32,10 +32,10 @@
 #include <dlfcn.h>
 #if defined(__linux__)
 #define LOAD_SOLIB(x) \
-    x = dlopen("libSDL2.so", RTLD_NOW)
+    x = dlopen("libSDL2.so", RTLD_LAZY)
 #else /* defined(__darwin__) */
 #define LOAD_SOLIB(x) \
-    x = dlopen("libSDL2.dylib", RTLD_NOW)
+    x = dlopen("libSDL2.dylib", RTLD_LAZY)
 #endif /* defined(__linux__) || defined(__darwin__) */
 #define FREE_SOLIB(x) \
     dlclose(x); x = 0
@@ -81,6 +81,10 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         uint32_t flags = (UserConfig.InitFullScreen)? SDL_WINDOW_FULLSCREEN_DESKTOP:0;
         window = SDL_CreateWindow(title, x, y, width, height, flags);
         if (window) {
+            if (UserConfig.SamplesMSAA) {
+                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
+                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, UserConfig.SamplesMSAA);
+            }
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
             render = SDL_CreateRenderer(window, -1, 0);
         }
@@ -100,6 +104,10 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             if (InitSubSystem && !InitSubSystem(SDL_INIT_VIDEO))
                 window = SDL_CreateWindowFrom((const void *)wnd);
             if (window) {
+                if (UserConfig.SamplesMSAA) {
+                    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
+                    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, UserConfig.SamplesMSAA);
+                }
                 SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
                 render = SDL_CreateRenderer(window, -1, 0);
             }
@@ -109,10 +117,12 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
             if (!flags)
                 return false;
-            self_wnd = false;
             window = (SDL_Window *)wnd;
+            render = nullptr;
         }
     }
+    if (render)
+        SDL_DestroyRenderer(render);
     context = SDL_GL_GetCurrentContext();
     if (!context) {
         context = SDL_GL_CreateContext(window);
@@ -187,7 +197,6 @@ void FinaliseOpenGLWindow( void)
     }
     if ( self_wnd ) {
         self_wnd = false;
-        SDL_DestroyRenderer(render);
         SDL_DestroyWindow(window);
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "0");
     }
@@ -195,7 +204,6 @@ void FinaliseOpenGLWindow( void)
         wnd_from = false;
         void (*QuitSubSystem)(const int);
         QUIT_SUBSS(hlib);
-        SDL_DestroyRenderer(render);
         QuitSubSystem(SDL_INIT_VIDEO);
     }
     if (hlib)
