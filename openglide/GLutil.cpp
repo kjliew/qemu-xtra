@@ -405,11 +405,8 @@ static void fgFontGenList(int first, int count, uint32_t listBase)
     glPixelStorei(GL_UNPACK_ALIGNMENT, org_alignment);
 }
 
-static void drawstr(const char *str)
+static void drawstr(const char *str, const int colors)
 {
-    const float colors[] = { 1.f, 1.f, 1.f };
-    const int rasterPos[] = { 13, 8 };
-
     glPushMatrix();
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
@@ -424,8 +421,8 @@ static void drawstr(const char *str)
         glDisable(GL_DEPTH_TEST);
 
     glListBase(fxstats.base);
-    glColor3fv(colors);
-    glRasterPos2iv(rasterPos);
+    glColor3ubv((const GLubyte *)&colors);
+    glRasterPos2i(13, 8);
     glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);
 
     if (Glide.State.DepthBufferMode != GR_DEPTHBUFFER_DISABLE)
@@ -487,7 +484,7 @@ void annotate_stat(void)
             snprintf(stats_line, sizeof(stats_line), "%-4u frames in %-4.1f seconds %-4.1f FPS",
                 fxstats.fcount, fxstats.ftime, fxstats.fcount / fxstats.ftime);
         }
-        drawstr(stats_line);
+        drawstr(stats_line, 0x00FFFFFF);
     }
 }
 
