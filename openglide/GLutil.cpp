@@ -383,7 +383,7 @@ static struct {
     uint32_t fcount;
     float ftime;
     int base;
-} fxstats = { .last = 0, .fcount = 0 };
+} fxstats;
 
 static void fgFontGenList(int first, int count, uint32_t listBase)
 {
@@ -450,7 +450,9 @@ static uint64_t get_ticks_monotonic(void)
 }
 void annotate_last(void)
 {
-    glDeleteLists(fxstats.base, 256);
+    if (fxstats.base)
+        glDeleteLists(fxstats.base, 256);
+    fxstats.base = 0;
     fxstats.fcount = 0;
     fxstats.last = 0;
 }
