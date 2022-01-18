@@ -66,8 +66,6 @@
 
 #define OGL_VER_1_1             101
 
-#define OPENGLFOGTABLESIZE      64 * 1024
-
 #define D1OVER255               0.003921568627451f      // 1 / 255
 #define D1OVER65536             0.0000152587890625f     // 1 / 65536
 #define D1OVER65535             0.000015259021896696421759365224689097f     // 1 / 65535
@@ -188,7 +186,7 @@ struct GlideStruct
     int                     NumBuffers;
     int                     AuxBuffers;
     // States and Constants
-    FxU8                    FogTable[ GR_FOG_TABLE_SIZE + 1 ];
+    FxU8                    FogTable[ GR_FOG_TABLE_SIZE ];
     FxU32                   TexMemoryMaxPosition;
     bool                    CLocal;
     bool                    COther;
@@ -237,7 +235,6 @@ struct OpenGLStruct
     GLfloat                 ZNear;
     GLfloat                 ZFar;
     GLfloat                 FogColor[ 4 ];
-    FxU8                    FogTable[ OPENGLFOGTABLESIZE ];
     OGLByteColor            ChromaColor;
     bool                    Fog;
     bool                    Texture;

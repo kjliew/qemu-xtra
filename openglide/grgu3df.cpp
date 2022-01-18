@@ -94,6 +94,11 @@ gu3dfLoad( const char *filename, Gu3dfInfo *data )
 
     file3df = fopen( filename, "rb" );
 
+    if ( file3df == NULL )
+    {
+        return 0;
+    }
+
     fseek( file3df, jump, SEEK_SET );
 
     if ( ( data->header.format == GR_TEXFMT_P_8 ) ||

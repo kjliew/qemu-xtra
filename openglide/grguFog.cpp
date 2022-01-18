@@ -31,17 +31,6 @@ grFogTable( const GrFog_t *ft )
     if ( InternalConfig.FogEnable )
     {
         memcpy( Glide.FogTable, (GrFog_t *)ft, GR_FOG_TABLE_SIZE * sizeof( FxU8 ) );
-        Glide.FogTable[ GR_FOG_TABLE_SIZE ] = 255;
-
-        for ( int i = 0; i < GR_FOG_TABLE_SIZE; i++ )
-        {
-            for ( unsigned int j = intStartEnd[ i ]; j < intStartEnd[ i + 1 ]; j++ )
-            {
-                OpenGL.FogTable[ j ] = (FxU8)( Glide.FogTable[ i ] + 
-                    ( Glide.FogTable[ i + 1 ] - Glide.FogTable[ i ] ) * ( j - intStartEnd[ i ] ) / 
-                    intEndMinusStart[ i ] );
-            }
-        }
     }
 }
 
@@ -115,92 +104,77 @@ grFogMode( GrFogMode_t mode )
 FX_ENTRY void FX_CALL
 guFogGenerateExp( GrFog_t *fogtable, float density )
 {
-#ifdef OGL_PARTDONE
-    GlideMsg( "guFogGenerateExp( ---, %-4.2f )\n", density );
-#endif
-    
-    float f;
-    float scale;
-    float dp;
-    
-    dp = density * guFogTableIndexToW( GR_FOG_TABLE_SIZE - 1 );
-    scale = 255.0F / ( 1.0F - (float) exp( -dp ) );
-    
-    for ( int i = 0; i < GR_FOG_TABLE_SIZE; i++ )
-    {
-        dp = density * guFogTableIndexToW( i );
-        f = ( 1.0F - (float) exp( -dp ) ) * scale;
-        
-        if ( f > 255.0F )
-        {
-            f = 255.0F;
-        }
-        else if ( f < 0.0F )
-        {
-            f = 0.0F;
-        }
-        
-        fogtable[ i ] = (GrFog_t) f;
-    }
-}
+  int   i;
+  float f;
+  float scale;
+  float dp;
+
+  dp = density * guFogTableIndexToW( GR_FOG_TABLE_SIZE - 1 );
+  scale = 1.0F / ( 1.0F - ( float ) exp( -dp ) );
+
+  for ( i = 0; i < GR_FOG_TABLE_SIZE; i++ ) {
+     dp = density * guFogTableIndexToW( i );
+     f = ( 1.0F - ( float ) exp( -dp ) ) * scale;
+
+     if ( f > 1.0F )
+        f = 1.0F;
+     else if ( f < 0.0F )
+        f = 0.0F;
+
+     f *= 255.0F;
+     fogtable[i] = ( GrFog_t ) f;
+  }
+} /* guFogGenerateExp */
 
 //*************************************************
 FX_ENTRY void FX_CALL
 guFogGenerateExp2( GrFog_t *fogtable, float density )
 {
-#ifdef OGL_PARTDONE
-    GlideMsg( "guFogGenerateExp2( ---, %-4.2f )\n", density );
-#endif
+  int   i;
+  float f;
+  float scale;
+  float dp;
 
-    float Temp;
+  dp = density * guFogTableIndexToW( GR_FOG_TABLE_SIZE - 1 );
+  scale = 1.0F / ( 1.0F - ( float ) exp( -( dp * dp ) ) );
 
-    for ( int i = 0; i < GR_FOG_TABLE_SIZE; i++ )
-    {
-        Temp = ( 1.0f - (float) exp( ( -density)  * guFogTableIndexToW( i ) ) * 
-               (float)exp( (-density)  * guFogTableIndexToW( i ) ) )  * 255.0f;
-        fogtable[ i ] = (FxU8) Temp;
-    }
-}
+  for ( i = 0; i < GR_FOG_TABLE_SIZE; i++ ) {
+     dp = density * guFogTableIndexToW( i );
+     f = ( 1.0F - ( float ) exp( -( dp * dp ) ) ) * scale;
+
+     if ( f > 1.0F )
+        f = 1.0F;
+     else if ( f < 0.0F )
+        f = 0.0F;
+
+     f *= 255.0F;
+     fogtable[i] = ( GrFog_t ) f;
+  }
+} /* guFogGenerateExp2 */
 
 //*************************************************
 FX_ENTRY void FX_CALL
 guFogGenerateLinear( GrFog_t *fogtable,
                      float nearZ, float farZ )
 {
-#ifdef OGL_PARTDONE
-    GlideMsg( "guFogGenerateLinear( ---, %-4.2f, %-4.2f )\n", nearZ, farZ );
-#endif
+   int i;
+   float world_w;
+   float f;
 
-    int Start, 
-        End, 
-        i;
+  for ( i = 0; i < GR_FOG_TABLE_SIZE; i++ ) {
+    world_w = guFogTableIndexToW( i );
+    if ( world_w > 65535.0F )
+      world_w = 65535.0F;
 
-    for( Start = 0; Start < GR_FOG_TABLE_SIZE; Start++ )
-    {
-        if ( guFogTableIndexToW( Start ) >= nearZ )
-        {
-            break;
-        }
-    }
-    for( End = 0; End < GR_FOG_TABLE_SIZE; End++ )
-    {
-        if ( guFogTableIndexToW( End ) >= farZ )
-        {
-            break;
-        }
-    }
-
-    ZeroMemory( fogtable, GR_FOG_TABLE_SIZE );
-    for( i = Start; i <= End; i++ )
-    {
-        fogtable[ i ] = (FxU8)((float)( End - Start ) / 255.0f * (float)( i - Start ));
-    }
-
-    for( i = End; i < GR_FOG_TABLE_SIZE; i++ )
-    {
-        fogtable[ i ] = 255;
-    }
-}
+    f = ( world_w - nearZ ) / ( farZ - nearZ );
+    if ( f > 1.0F )
+      f = 1.0F;
+    else if ( f < 0.0F )
+      f = 0.0F;
+    f *= 255.0F;
+    fogtable[i] = ( GrFog_t ) f;
+  }
+} /* guFogGenerateLinear */
 
 //*************************************************
 //* convert a fog table index to a floating point eye-space w value

@@ -46,8 +46,6 @@ extern OGLAlphaTable alphaCombineTable[ 14 ][ 17 ];
 extern OGLColorTable colorCombineTable[ 14 ][ 17 ];
 
 // OGLFogTables.cpp
-extern FxU32 intStartEnd[ GR_FOG_TABLE_SIZE + 1 ];
-extern FxU32 intEndMinusStart[ GR_FOG_TABLE_SIZE ];
 extern float tableIndexToW[ GR_FOG_TABLE_SIZE ];
 
 #endif

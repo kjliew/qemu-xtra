@@ -114,6 +114,9 @@ extern ALPHAFACTORFUNCPROC  AlphaFactorFunc;
 extern COLORFACTORFUNCPROC  ColorFactor3Func;
 extern COLORFUNCTIONPROC    ColorFunctionFunc;
 
+// Fog with W distance
+float OGLFogDistance(const float);
+
 // Prototypes for the color combining
 float AlphaFactorZero( float LocalAlpha, float OtherAlpha );
 float AlphaFactorLocal( float LocalAlpha, float OtherAlpha );

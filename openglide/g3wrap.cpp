@@ -393,7 +393,7 @@ wrap3x_grFogTable( const GrFog_t ft[] )
     memcpy(fto, ft, GR_FOG_TABLE_SIZE);
     if (vertex3x.vlut[GR_PARAM_IDX(GR_PARAM_Q0)] && 
         (vertex3x.vlut[GR_PARAM_IDX(GR_PARAM_Q0)] == vertex3x.vlut[GR_PARAM_IDX(GR_PARAM_Q1)])) {
-        guFogGenerateLinear(fto, guFogTableIndexToW(0), guFogTableIndexToW(63));
+        guFogGenerateExp(fto, 1.f / guFogTableIndexToW(GR_FOG_TABLE_SIZE - 1));
 #if 0
         fprintf(stderr, "  FogTable override:\n  ");
         for (int i = 0; i < GR_FOG_TABLE_SIZE; i++) {
