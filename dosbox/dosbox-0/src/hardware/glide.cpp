@@ -362,8 +362,8 @@ public:
 	    return;
 	}
 #ifdef WIN32
-        setConfig = (void (__stdcall *)(const uint32_t))GetProcAddress(hdll, "_setConfig@4");
-        setConfigRes = (void (__stdcall *)(const int))GetProcAddress(hdll, "_setConfigRes@4");
+        setConfig = (void (*)(const uint32_t))GetProcAddress(hdll, "_setConfig@4");
+        setConfigRes = (void (*)(const int))GetProcAddress(hdll, "_setConfigRes@4");
 #else
         setConfig = (void (*)(const uint32_t))dlsym(hdll, "setConfig");
         setConfigRes = (void (*)(const int))dlsym(hdll, "setConfigRes");
