@@ -408,31 +408,30 @@ static void fgFontGenList(int first, int count, uint32_t listBase)
 static void drawstr(const char *str, const int colors)
 {
     glPushMatrix();
+    glPushAttrib(
+            GL_CURRENT_BIT |
+            GL_DEPTH_BUFFER_BIT |
+            GL_LIGHTING_BIT |
+            GL_TEXTURE_BIT |
+            GL_TRANSFORM_BIT |
+        0);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     gluOrtho2D(0, OpenGL.WindowWidth, 0, OpenGL.WindowHeight);
 
-    glPushAttrib(GL_LIGHTING_BIT | GL_CURRENT_BIT);
     glDisable(GL_LIGHTING);
     glDisable(GL_TEXTURE_2D);
-    if (Glide.State.DepthBufferMode != GR_DEPTHBUFFER_DISABLE)
-        glDisable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
 
     glListBase(fxstats.base);
     glColor3ubv((const GLubyte *)&colors);
     glRasterPos2i(13, 8);
     glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);
 
-    if (Glide.State.DepthBufferMode != GR_DEPTHBUFFER_DISABLE)
-        glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
-    glPopAttrib();
-
     glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    glPopAttrib();
     glPopMatrix();
 }
 
