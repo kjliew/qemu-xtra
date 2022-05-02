@@ -1,0 +1,31 @@
+diff -ru ../orig/dosbox-r4267/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
+--- ../orig/dosbox-r4267/src/dos/dos_programs.cpp	2019-10-05 20:15:08.000000000 -0700
++++ ./src/dos/dos_programs.cpp	2019-10-05 20:50:01.200140762 -0700
+@@ -1386,12 +1386,12 @@
+ 					WriteOut(MSG_Get("PROGRAM_IMGMOUNT_INVALID_GEOMETRY"));
+ 					return;
+ 				}
+-				Bitu sectors=(Bitu)(fcsize/(16*63));
+-				if (sectors*16*63!=fcsize) {
++                                Bitu sectors=(Bitu)((fcsize-63)/(255*63));
++                                if (((sectors*255)+1)*63!=fcsize) {
+ 					WriteOut(MSG_Get("PROGRAM_IMGMOUNT_INVALID_GEOMETRY"));
+ 					return;
+ 				}
+-				sizes[0]=512;	sizes[1]=63;	sizes[2]=16;	sizes[3]=sectors;
++                                sizes[0]=512;	sizes[1]=63;	sizes[2]=255;	sizes[3]=sectors;
+ 
+ 				LOG_MSG("autosized image file: %d:%d:%d:%d",sizes[0],sizes[1],sizes[2],sizes[3]);
+ 			}
+diff -ru ../orig/dosbox-r4168/src/dos/drive_fat.cpp ./src/dos/drive_fat.cpp
+--- ../orig/dosbox-r4168/src/dos/drive_fat.cpp	2018-11-03 19:04:25.000000000 -0700
++++ ./src/dos/drive_fat.cpp	2018-11-04 14:23:53.812138400 -0800
+@@ -708,7 +708,7 @@
+ 	diskfile = fopen(sysFilename, "rb+");
+ 	if(!diskfile) {created_successfully = false;return;}
+ 	fseek(diskfile, 0L, SEEK_END);
+-	filesize = (Bit32u)ftell(diskfile) / 1024L;
++	filesize = (Bit32u)(ftell(diskfile) / 1024L);
+ 	is_hdd = (filesize > 2880);
+ 
+ 	/* Load disk image */

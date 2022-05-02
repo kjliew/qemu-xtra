@@ -1,0 +1,50 @@
+#!/bin/sh
+
+MUNT_MT32="https://raw.githubusercontent.com/munt/munt/master/DOSBox-mt32-patch/dosbox-SVN-r4319-mt32-patch.diff"
+DEPS=" \
+    curl \
+    diff \
+    make \
+    patch \
+    rsync \
+    sed \
+    shasum \
+    svn \
+    xxd \
+" \
+
+for i in $DEPS; do
+    echo -n "checking for $i... "
+    if [ -z $(which $i 2>/dev/null) ]; then
+        echo not found
+        exit 1
+    fi
+    echo $(which $i)
+done
+
+rm -fr dosbox-code-0
+svn checkout $@ https://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk dosbox-code-0 | tee /tmp/_svn | tail -n 2
+SVN=`tail -n 1 /tmp/_svn | sed "s/.*revision\ /r/;s/\.$//"`
+rm -f /tmp/_svn
+if [ -d dosbox-$SVN ]; then
+    echo Already exist dosbox-$SVN
+    exit 1
+fi
+mv -v dosbox-code-0 dosbox-$SVN
+
+rsync -r ./dosbox-0/ ./dosbox-$SVN/
+cp -f $(find ../openglide/ | grep -e sdk2.*\.h$ -e fgfont | grep -v glide3) ./dosbox-$SVN/include/
+cd dosbox-$SVN
+for i in $(ls ../100*.patch); do
+    echo "** Apply $i **"
+    patch -s -p0 -i $i
+done
+echo "** Apply Munt/MT32 patch **"
+curl -s $MUNT_MT32 | patch -s -p1
+if [ ! -z $(find ./ | grep "\.rej$") ]; then
+    echo Apply patch failed
+    exit 1
+fi
+rm -fr .svn $(find ./ | grep "\.orig$")
+./autogen.sh 2>/dev/null && rm -fr autom4*/
+echo "** DOSBox SVN $SVN **"
