@@ -39,6 +39,10 @@ for i in $(ls ../100*.patch); do
     echo "** Apply $i **"
     patch -s -p0 -i $i
 done
+if [ x`uname` == xDarwin ] && [ x`uname -m` == xarm64 ]; then
+    echo "** Apply $(ls ../200*.patch) **"
+    patch -s -p0 -i $(ls ../200*.patch)
+fi
 echo "** Apply Munt/MT32 patch **"
 curl -s $MUNT_MT32 | patch -s -p1
 if [ ! -z $(find ./ | grep "\.rej$") ]; then

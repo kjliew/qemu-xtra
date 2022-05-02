@@ -1,2 +1,2 @@
-822fcfeb3361147e08b0beea33bc7a2df7a95d34 *glide2x.dll
-b1ab04ed15f0383f591e74215d8be562ef0e4d1b *glide2x.ovl
+822fcfeb3361147e08b0beea33bc7a2df7a95d34 glide2x.dll
+b1ab04ed15f0383f591e74215d8be562ef0e4d1b glide2x.ovl

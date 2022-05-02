@@ -9,7 +9,7 @@ glide2x.dll: dll.xxd
 	@xxd -r $< $@
 
 shasum: shasum.sig
-	@shasum glide2x.dll glide2x.ovl | diff - $<
+	@shasum glide2x.dll glide2x.ovl | sed "s/.\(glide2x\)/\1/" | diff - $<
 
 clean:
-	rm -f *.ovl *.dll
+	@rm -f *.ovl *.dll

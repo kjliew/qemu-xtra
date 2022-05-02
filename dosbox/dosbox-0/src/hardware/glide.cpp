@@ -410,7 +410,7 @@ public:
 
 	for (int i = 0; dirname[i]; i++) {
 	    if((pdir = opendir(dirname[i]))) {
-		while(pfile = readdir(pdir)) {
+		while((pfile = readdir(pdir))) {
 		    if(!strcasecmp(pfile->d_name, ovl_name)) {
 			strcpy(path, dirname[i]); strcat(path, pfile->d_name);
 			ovl = fopen(path, "rb");
