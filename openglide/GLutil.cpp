@@ -412,8 +412,10 @@ static void drawstr(const char *str, const int colors)
             GL_CURRENT_BIT |
             GL_DEPTH_BUFFER_BIT |
             GL_LIGHTING_BIT |
+            GL_SCISSOR_BIT |
             GL_TEXTURE_BIT |
             GL_TRANSFORM_BIT |
+            GL_VIEWPORT_BIT |
         0);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
@@ -425,6 +427,9 @@ static void drawstr(const char *str, const int colors)
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(11, 6, 11 + (8 * strlen(str)), (6 + 9));
+    glClear(GL_COLOR_BUFFER_BIT);
     glListBase(fxstats.base);
     glColor3ubv((const GLubyte *)&colors);
     glRasterPos2i(13, 8);
@@ -481,7 +486,7 @@ void annotate_stat(void)
         i = (int)fxstats.ftime;
         if (i && ((i % 5) == 0)) {
             fxstats.last = 0;
-            snprintf(stats_line, sizeof(stats_line), "%-4u frames in %-5.1f seconds %-5.1f FPS",
+            snprintf(stats_line, sizeof(stats_line), "%-4u frames in %-4.1f seconds %-5.1f FPS",
                 fxstats.fcount, fxstats.ftime, fxstats.fcount / fxstats.ftime);
         }
         drawstr(stats_line, 0x00FFFFFF);
