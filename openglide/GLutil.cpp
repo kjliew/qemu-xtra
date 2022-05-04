@@ -462,19 +462,18 @@ void annotate_stat(void)
     uint64_t curr;
     int i;
 
-    if (fxstats.last == 0) {
-        if (fxstats.fcount == 0) {
-            fxstats.base = glGenLists(256);
-            fgFontGenList(0, 255, fxstats.base);
-            snprintf(stats_line, sizeof(stats_line), "%s", "Init ...");
-        }
-        fxstats.fcount = 0;
-        fxstats.ftime = 0;
-        fxstats.last = get_ticks_monotonic();
-        return;
-    }
-
     if (UserConfig.Annotate) {
+        if (fxstats.last == 0) {
+            if (fxstats.fcount == 0) {
+                fxstats.base = glGenLists(256);
+                fgFontGenList(0, 255, fxstats.base);
+                snprintf(stats_line, sizeof(stats_line), "%s", "Init ...");
+            }
+            fxstats.fcount = 0;
+            fxstats.ftime = 0;
+            fxstats.last = get_ticks_monotonic();
+            return;
+        }
         curr = get_ticks_monotonic();
         fxstats.fcount++;
         fxstats.ftime += (curr - fxstats.last) * (1.f / NANOSECONDS_PER_SECOND);
@@ -482,7 +481,7 @@ void annotate_stat(void)
         i = (int)fxstats.ftime;
         if (i && ((i % 5) == 0)) {
             fxstats.last = 0;
-            snprintf(stats_line, sizeof(stats_line), "%-4u frames in %-4.1f seconds %-4.1f FPS",
+            snprintf(stats_line, sizeof(stats_line), "%-4u frames in %-5.1f seconds %-5.1f FPS",
                 fxstats.fcount, fxstats.ftime, fxstats.fcount / fxstats.ftime);
         }
         drawstr(stats_line, 0x00FFFFFF);
