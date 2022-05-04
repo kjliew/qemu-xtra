@@ -1,6 +1,6 @@
-diff -ru ../orig/dosbox-r4475/configure.ac ./configure.ac
---- ../orig/dosbox-r4475/configure.ac	2022-05-01 20:40:32.000000000 -0700
-+++ ./configure.ac	2022-05-01 23:13:00.947379300 -0700
+diff -ru ../dosbox-code-0/configure.ac ./configure.ac
+--- ../dosbox-code-0/configure.ac	2022-05-04 07:31:48.300899500 -0700
++++ ./configure.ac	2022-05-02 13:33:03.001419800 -0700
 @@ -616,7 +616,7 @@
  dnl Some target detection and actions for them
  case "$host" in
@@ -10,9 +10,9 @@ diff -ru ../orig/dosbox-r4475/configure.ac ./configure.ac
         AC_DEFINE(C_DIRECTSERIAL, 1, [ Define to 1 if you want serial passthrough support (Win32, Posix and OS/2 only).])
         if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
           LIBS="$LIBS -lws2_32"
-diff -ru ../orig/dosbox-r4475/include/Makefile.am ./include/Makefile.am
---- ../orig/dosbox-r4475/include/Makefile.am	2022-05-01 20:40:32.000000000 -0700
-+++ ./include/Makefile.am	2022-05-01 23:13:01.005627800 -0700
+diff -ru ../dosbox-code-0/include/Makefile.am ./include/Makefile.am
+--- ../dosbox-code-0/include/Makefile.am	2022-05-04 07:31:48.269596500 -0700
++++ ./include/Makefile.am	2022-05-02 13:33:03.001419800 -0700
 @@ -36,5 +36,6 @@
  support.h \
  timer.h \
@@ -20,9 +20,9 @@ diff -ru ../orig/dosbox-r4475/include/Makefile.am ./include/Makefile.am
 +voodoo.h \
  video.h
  
-diff -ru ../orig/dosbox-r4475/include/logging.h ./include/logging.h
---- ../orig/dosbox-r4475/include/logging.h	2022-05-01 20:40:32.000000000 -0700
-+++ ./include/logging.h	2022-05-01 23:13:01.005627800 -0700
+diff -ru ../dosbox-code-0/include/logging.h ./include/logging.h
+--- ../dosbox-code-0/include/logging.h	2022-05-04 07:31:47.644654000 -0700
++++ ./include/logging.h	2022-05-02 13:33:03.001419800 -0700
 @@ -28,6 +28,7 @@
  	LOG_MOUSE,LOG_BIOS,LOG_GUI,LOG_MISC,
  	LOG_IO,
@@ -31,9 +31,9 @@ diff -ru ../orig/dosbox-r4475/include/logging.h ./include/logging.h
  	LOG_MAX
  };
  
-diff -ru ../orig/dosbox-r4475/include/mem.h ./include/mem.h
---- ../orig/dosbox-r4475/include/mem.h	2022-05-01 20:40:32.000000000 -0700
-+++ ./include/mem.h	2022-05-01 23:13:01.005627800 -0700
+diff -ru ../dosbox-code-0/include/mem.h ./include/mem.h
+--- ../dosbox-code-0/include/mem.h	2022-05-04 07:31:49.098686200 -0700
++++ ./include/mem.h	2022-05-02 13:33:03.017069400 -0700
 @@ -173,6 +173,8 @@
  
  void MEM_BlockWrite(PhysPt pt,void const * const data,Bitu size);
@@ -43,9 +43,9 @@ diff -ru ../orig/dosbox-r4475/include/mem.h ./include/mem.h
  void MEM_BlockCopy(PhysPt dest,PhysPt src,Bitu size);
  void MEM_StrCopy(PhysPt pt,char * data,Bitu size);
  
-diff -ru ../orig/dosbox-r4475/include/pci_bus.h ./include/pci_bus.h
---- ../orig/dosbox-r4475/include/pci_bus.h	2022-05-01 20:40:32.000000000 -0700
-+++ ./include/pci_bus.h	2022-05-01 23:13:01.005627800 -0700
+diff -ru ../dosbox-code-0/include/pci_bus.h ./include/pci_bus.h
+--- ../dosbox-code-0/include/pci_bus.h	2022-05-04 07:31:47.785195000 -0700
++++ ./include/pci_bus.h	2022-05-02 13:33:03.017069400 -0700
 @@ -19,7 +19,7 @@
  #ifndef DOSBOX_PCI_H
  #define DOSBOX_PCI_H
@@ -66,9 +66,9 @@ diff -ru ../orig/dosbox-r4475/include/pci_bus.h ./include/pci_bus.h
 +void PCI_RemoveSST_Device(void);
 +
  #endif
-diff -ru ../orig/dosbox-r4475/include/video.h ./include/video.h
---- ../orig/dosbox-r4475/include/video.h	2022-05-01 20:40:32.000000000 -0700
-+++ ./include/video.h	2022-05-01 23:13:01.021244800 -0700
+diff -ru ../dosbox-code-0/include/video.h ./include/video.h
+--- ../dosbox-code-0/include/video.h	2022-05-04 07:31:49.129923000 -0700
++++ ./include/video.h	2022-05-02 13:33:03.032691400 -0700
 @@ -60,6 +60,8 @@
  Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue);
  Bitu GFX_SetSize(Bitu width,Bitu height,Bitu flags,double scalex,double scaley,GFX_CallBack_t cb);
@@ -93,9 +93,9 @@ diff -ru ../orig/dosbox-r4475/include/video.h ./include/video.h
  #if defined (WIN32)
  bool GFX_SDLUsingWinDIB(void);
  #endif
-diff -ru ../orig/dosbox-r4475/src/cpu/paging.cpp ./src/cpu/paging.cpp
---- ../orig/dosbox-r4475/src/cpu/paging.cpp	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/cpu/paging.cpp	2022-05-01 23:13:01.023547100 -0700
+diff -ru ../dosbox-code-0/src/cpu/paging.cpp ./src/cpu/paging.cpp
+--- ../dosbox-code-0/src/cpu/paging.cpp	2022-05-04 07:31:46.613397300 -0700
++++ ./src/cpu/paging.cpp	2022-05-02 13:33:03.032691400 -0700
 @@ -144,6 +144,8 @@
  	old_cpudecoder=cpudecoder;
  	cpudecoder=&PageFaultCore;
@@ -114,9 +114,9 @@ diff -ru ../orig/dosbox-r4475/src/cpu/paging.cpp ./src/cpu/paging.cpp
  	LOG(LOG_PAGING,LOG_NORMAL)("Left PageFault for %x queue %d",lin_addr,pf_queue.used);
  	memcpy(&lflags,&old_lflags,sizeof(LazyFlags));
  	cpudecoder=old_cpudecoder;
-diff -ru ../orig/dosbox-r4475/src/debug/debug_gui.cpp ./src/debug/debug_gui.cpp
---- ../orig/dosbox-r4475/src/debug/debug_gui.cpp	2022-05-01 20:40:31.000000000 -0700
-+++ ./src/debug/debug_gui.cpp	2022-05-01 23:13:01.032091000 -0700
+diff -ru ../dosbox-code-0/src/debug/debug_gui.cpp ./src/debug/debug_gui.cpp
+--- ../dosbox-code-0/src/debug/debug_gui.cpp	2022-05-04 07:31:44.535280200 -0700
++++ ./src/debug/debug_gui.cpp	2022-05-02 13:33:03.048399900 -0700
 @@ -256,6 +256,8 @@
  	loggrp[LOG_IO].front="IO";
  	loggrp[LOG_PCI].front="PCI";
@@ -126,9 +126,9 @@ diff -ru ../orig/dosbox-r4475/src/debug/debug_gui.cpp ./src/debug/debug_gui.cpp
  	/* Register the log section */
  	Section_prop * sect=control->AddSection_prop("log",LOG_Init);
  	Prop_string* Pstring = sect->Add_string("logfile",Property::Changeable::Always,"");
-diff -ru ../orig/dosbox-r4475/src/dosbox.cpp ./src/dosbox.cpp
---- ../orig/dosbox-r4475/src/dosbox.cpp	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/dosbox.cpp	2022-05-01 23:18:46.706817400 -0700
+diff -ru ../dosbox-code-0/src/dosbox.cpp ./src/dosbox.cpp
+--- ../dosbox-code-0/src/dosbox.cpp	2022-05-04 07:31:46.691532600 -0700
++++ ./src/dosbox.cpp	2022-05-02 13:33:03.581032100 -0700
 @@ -76,11 +76,13 @@
  
  #if defined(PCI_FUNCTIONALITY_ENABLED)
@@ -200,9 +200,9 @@ diff -ru ../orig/dosbox-r4475/src/dosbox.cpp ./src/dosbox.cpp
  	/* All the DOS Related stuff, which will eventually start up in the shell */
  	secprop=control->AddSection_prop("dos",&DOS_Init,false);//done
  	secprop->AddInitFunction(&XMS_Init,true);//done
-diff -ru ../orig/dosbox-r4475/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
---- ../orig/dosbox-r4475/src/gui/sdlmain.cpp	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/gui/sdlmain.cpp	2022-05-01 23:13:01.055451500 -0700
+diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
+--- ../dosbox-code-0/src/gui/sdlmain.cpp	2022-05-04 07:31:47.191527600 -0700
++++ ./src/gui/sdlmain.cpp	2022-05-04 07:55:54.440166000 -0700
 @@ -49,6 +49,7 @@
  #include "cpu.h"
  #include "cross.h"
@@ -257,6 +257,18 @@ diff -ru ../orig/dosbox-r4475/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	if (sdl.surface && sdl.surface->flags & SDL_FULLSCREEN) {
  		sdl.clip.x = (Sint16)((sdl.surface->w-sdl.clip.w)/2);
  		sdl.clip.y = (Sint16)((sdl.surface->h-sdl.clip.h)/2);
+@@ -957,9 +974,9 @@
+ #if C_OPENGL
+ 	case SCREEN_OPENGL:
+ 	{
+-		if (sdl.opengl.pixel_buffer_object) {
++		if (sdl.opengl.pixel_buffer_object && sdl.opengl.buffer) {
+ 			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
+-			if (sdl.opengl.buffer) glDeleteBuffersARB(1, &sdl.opengl.buffer);
++			glDeleteBuffersARB(1, &sdl.opengl.buffer);
+ 		} else if (sdl.opengl.framebuf) {
+ 			free(sdl.opengl.framebuf);
+ 		}
 @@ -1166,6 +1183,7 @@
  	}//CASE
  	if (retFlags)
@@ -292,16 +304,18 @@ diff -ru ../orig/dosbox-r4475/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  			break;
  #ifdef WIN32
  		case SDL_KEYDOWN:
-@@ -2669,6 +2691,8 @@
+@@ -2669,6 +2691,10 @@
  			if (strcmp(sdl_drv_name,"windib")==0) LOG_MSG("SDL_Init: Starting up with SDL windib video driver.\n          Try to update your video card and directx drivers!");
  		}
  #endif
++        SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 +	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
++        SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
 +	glide.fullscreen = &sdl.desktop.fullscreen;
  	sdl.num_joysticks=SDL_NumJoysticks();
  
  	/* Parse configuration files */
-@@ -2800,3 +2824,12 @@
+@@ -2800,3 +2826,12 @@
  	height = sdl.draw.height;
  	fullscreen = sdl.desktop.fullscreen;
  }
@@ -314,9 +328,9 @@ diff -ru ../orig/dosbox-r4475/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
 +        return (gfx_w)? gfx_w:sdl.clip.w;
 +}
 +
-diff -ru ../orig/dosbox-r4475/src/hardware/Makefile.am ./src/hardware/Makefile.am
---- ../orig/dosbox-r4475/src/hardware/Makefile.am	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/hardware/Makefile.am	2022-05-01 23:19:35.095975100 -0700
+diff -ru ../dosbox-code-0/src/hardware/Makefile.am ./src/hardware/Makefile.am
+--- ../dosbox-code-0/src/hardware/Makefile.am	2022-05-04 07:31:45.050902300 -0700
++++ ./src/hardware/Makefile.am	2022-05-02 13:33:03.079569800 -0700
 @@ -2,14 +2,17 @@
  
  SUBDIRS = serialport mame
@@ -336,9 +350,9 @@ diff -ru ../orig/dosbox-r4475/src/hardware/Makefile.am ./src/hardware/Makefile.a
  			cmos.cpp disney.cpp gus.cpp mpu401.cpp ipx.cpp ipxserver.cpp dbopl.cpp
  
  
-diff -ru ../orig/dosbox-r4475/src/hardware/memory.cpp ./src/hardware/memory.cpp
---- ../orig/dosbox-r4475/src/hardware/memory.cpp	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/hardware/memory.cpp	2022-05-01 23:13:01.106139900 -0700
+diff -ru ../dosbox-code-0/src/hardware/memory.cpp ./src/hardware/memory.cpp
+--- ../dosbox-code-0/src/hardware/memory.cpp	2022-05-04 07:31:44.738356100 -0700
++++ ./src/hardware/memory.cpp	2022-05-02 13:33:03.206368200 -0700
 @@ -23,6 +23,8 @@
  #include "setup.h"
  #include "paging.h"
@@ -384,9 +398,9 @@ diff -ru ../orig/dosbox-r4475/src/hardware/memory.cpp ./src/hardware/memory.cpp
  void MEM_BlockCopy(PhysPt dest,PhysPt src,Bitu size) {
  	mem_memcpy(dest,src,size);
  }
-diff -ru ../orig/dosbox-r4475/src/hardware/pci_bus.cpp ./src/hardware/pci_bus.cpp
---- ../orig/dosbox-r4475/src/hardware/pci_bus.cpp	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/hardware/pci_bus.cpp	2022-05-01 23:13:01.106139900 -0700
+diff -ru ../dosbox-code-0/src/hardware/pci_bus.cpp ./src/hardware/pci_bus.cpp
+--- ../dosbox-code-0/src/hardware/pci_bus.cpp	2022-05-04 07:31:44.878959400 -0700
++++ ./src/hardware/pci_bus.cpp	2022-05-02 13:33:03.094086900 -0700
 @@ -19,12 +19,15 @@
  
  #include "dosbox.h"
@@ -476,9 +490,9 @@ diff -ru ../orig/dosbox-r4475/src/hardware/pci_bus.cpp ./src/hardware/pci_bus.cp
 +}
 +
  #endif
-diff -ru ../orig/dosbox-r4475/src/hardware/pci_devices.h ./src/hardware/pci_devices.h
---- ../orig/dosbox-r4475/src/hardware/pci_devices.h	2022-05-01 20:40:31.000000000 -0700
-+++ ./src/hardware/pci_devices.h	2022-05-01 23:13:01.119280200 -0700
+diff -ru ../dosbox-code-0/src/hardware/pci_devices.h ./src/hardware/pci_devices.h
+--- ../dosbox-code-0/src/hardware/pci_devices.h	2022-05-04 07:31:44.738356100 -0700
++++ ./src/hardware/pci_devices.h	2022-05-02 13:33:03.094086900 -0700
 @@ -16,3 +16,230 @@
   *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
   */
@@ -710,9 +724,9 @@ diff -ru ../orig/dosbox-r4475/src/hardware/pci_devices.h ./src/hardware/pci_devi
 +		return true;
 +	}
 +};
-diff -ru ../orig/dosbox-r4475/src/hardware/vga_s3.cpp ./src/hardware/vga_s3.cpp
---- ../orig/dosbox-r4475/src/hardware/vga_s3.cpp	2022-05-01 20:40:32.000000000 -0700
-+++ ./src/hardware/vga_s3.cpp	2022-05-01 23:13:01.119280200 -0700
+diff -ru ../dosbox-code-0/src/hardware/vga_s3.cpp ./src/hardware/vga_s3.cpp
+--- ../dosbox-code-0/src/hardware/vga_s3.cpp	2022-05-04 07:31:46.097691900 -0700
++++ ./src/hardware/vga_s3.cpp	2022-05-02 13:33:03.109808800 -0700
 @@ -21,6 +21,7 @@
  #include "inout.h"
  #include "vga.h"

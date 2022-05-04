@@ -1,7 +1,7 @@
-diff -rwuN ../orig/r4095/src/dosbox.cpp ./src/dosbox.cpp
---- ../orig/r4095/src/dosbox.cpp	2018-05-27 20:53:21 -0700
-+++ ./src/dosbox.cpp	2018-05-27 20:55:15 -0700
-@@ -372,7 +372,7 @@
+diff -ru ../dosbox-code-0/src/dosbox.cpp src/dosbox.cpp
+--- ../dosbox-code-0/src/dosbox.cpp	2022-05-04 07:31:46.691532600 -0700
++++ src/dosbox.cpp	2022-05-02 13:33:03.581032100 -0700
+@@ -370,7 +372,7 @@
  	else if (mtype == "hercules") { machine = MCH_HERC; }
  	else if (mtype == "ega")      { machine = MCH_EGA; }
  //	else if (mtype == "vga")          { svgaCard = SVGA_S3Trio; }
@@ -10,7 +10,7 @@ diff -rwuN ../orig/r4095/src/dosbox.cpp ./src/dosbox.cpp
  	else if (mtype == "vesa_nolfb")   { svgaCard = SVGA_S3Trio; int10.vesa_nolfb = true;}
  	else if (mtype == "vesa_oldvbe")   { svgaCard = SVGA_S3Trio; int10.vesa_oldvbe = true;}
  	else if (mtype == "svga_et4000")   { svgaCard = SVGA_TsengET4K; }
-@@ -432,7 +432,7 @@
+@@ -430,7 +432,7 @@
  	secprop->AddInitFunction(&MEM_Init);//done
  	secprop->AddInitFunction(&HARDWARE_Init);//done
  	Pint = secprop->Add_int("memsize", Property::Changeable::WhenIdle,16);
@@ -18,11 +18,11 @@ diff -rwuN ../orig/r4095/src/dosbox.cpp ./src/dosbox.cpp
 +	Pint->SetMinMax(1,383);
  	Pint->Set_help(
  		"Amount of memory DOSBox has in megabytes.\n"
- 		"  This value is best left at its default to avoid problems with some games,\n"
-diff -rwuN ../orig/r4095/src/hardware/memory.cpp ./src/hardware/memory.cpp
---- ../orig/r4095/src/hardware/memory.cpp	2018-05-27 20:53:21 -0700
-+++ ./src/hardware/memory.cpp	2018-05-27 20:53:46 -0700
-@@ -30,7 +30,7 @@
+ 		"This value is best left at its default to avoid problems with some games,\n"
+diff -ru ../dosbox-code-0/src/hardware/memory.cpp src/hardware/memory.cpp
+--- ../dosbox-code-0/src/hardware/memory.cpp	2022-05-04 07:31:44.738356100 -0700
++++ src/hardware/memory.cpp	2022-05-02 13:33:03.206368200 -0700
+@@ -28,7 +28,7 @@
  
  #define PAGES_IN_BLOCK	((1024*1024)/MEM_PAGE_SIZE)
  #define SAFE_MEMORY	32
@@ -31,10 +31,10 @@ diff -rwuN ../orig/r4095/src/hardware/memory.cpp ./src/hardware/memory.cpp
  #define MAX_PAGE_ENTRIES (MAX_MEMORY*1024*1024/4096)
  #define LFB_PAGES	512
  #define MAX_LINKS	((MAX_MEMORY*1024/4)+4096)		//Hopefully enough
-diff -rwuN ../orig/r4095/src/ints/bios.cpp ./src/ints/bios.cpp
---- ../orig/r4095/src/ints/bios.cpp	2018-05-01 21:29:47 -0700
-+++ ./src/ints/bios.cpp	2018-05-27 20:53:46 -0700
-@@ -947,6 +947,27 @@
+diff -ru ../dosbox-code-0/src/ints/bios.cpp src/ints/bios.cpp
+--- ../dosbox-code-0/src/ints/bios.cpp	2022-05-04 07:31:45.363320100 -0700
++++ src/ints/bios.cpp	2022-05-02 13:33:03.206368200 -0700
+@@ -990,6 +990,27 @@
  		LOG(LOG_BIOS,LOG_NORMAL)("INT15:Function %X called, bios mouse not supported",reg_ah);
  		CALLBACK_SCF(true);
  		break;
@@ -60,5 +60,5 @@ diff -rwuN ../orig/r4095/src/ints/bios.cpp ./src/ints/bios.cpp
 +		break;
 +
  	default:
+ 	unhandled:
  		LOG(LOG_BIOS,LOG_ERROR)("INT15:Unknown call %4X",reg_ax);
- 		reg_ah=0x86;

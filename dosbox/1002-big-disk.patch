@@ -1,6 +1,6 @@
-diff -rwu ../orig/r4095/include/bios_disk.h ./include/bios_disk.h
---- ../orig/r4095/include/bios_disk.h	2018-05-01 21:29:55 -0700
-+++ ./include/bios_disk.h	2018-06-10 02:05:27 -0700
+diff -ru ../dosbox-code-0/include/bios_disk.h include/bios_disk.h
+--- ../dosbox-code-0/include/bios_disk.h	2022-05-04 07:31:48.207160300 -0700
++++ include/bios_disk.h	2022-05-02 13:33:03.126182900 -0700
 @@ -66,10 +66,15 @@
  	Bit32u sector_size;
  	Bit32u heads,cylinders,sectors;
@@ -18,9 +18,9 @@ diff -rwu ../orig/r4095/include/bios_disk.h ./include/bios_disk.h
  void updateDPT(void);
  void incrementFDD(void);
  
-diff -rwu ../orig/r4095/src/ints/bios_disk.cpp ./src/ints/bios_disk.cpp
---- ../orig/r4095/src/ints/bios_disk.cpp	2018-05-01 21:29:47 -0700
-+++ ./src/ints/bios_disk.cpp	2018-06-10 01:34:43 -0700
+diff -ru ../dosbox-code-0/src/ints/bios_disk.cpp src/ints/bios_disk.cpp
+--- ../dosbox-code-0/src/ints/bios_disk.cpp	2022-05-04 07:31:45.410194900 -0700
++++ src/ints/bios_disk.cpp	2022-05-02 13:33:03.134160100 -0700
 @@ -159,9 +159,9 @@
  }
  
