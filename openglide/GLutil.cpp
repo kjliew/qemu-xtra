@@ -409,6 +409,7 @@ static void drawstr(const char *str, const int colors)
 {
     glPushMatrix();
     glPushAttrib(
+            GL_COLOR_BUFFER_BIT |
             GL_CURRENT_BIT |
             GL_DEPTH_BUFFER_BIT |
             GL_LIGHTING_BIT |

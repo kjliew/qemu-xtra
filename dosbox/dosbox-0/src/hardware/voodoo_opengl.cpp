@@ -1298,6 +1298,7 @@ static void drawstr(const char *str, const int colors)
     Bitu scale_w = scale_width, scale_h = scale_w * r;
     glPushMatrix();
     glPushAttrib(
+            GL_COLOR_BUFFER_BIT |
             GL_CURRENT_BIT |
             GL_DEPTH_BUFFER_BIT |
             GL_LIGHTING_BIT |
