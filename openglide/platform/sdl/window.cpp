@@ -35,11 +35,13 @@
     x = dlopen("libSDL2.so", RTLD_LAZY)
 #else /* defined(__darwin__) */
 #define LOAD_SOLIB(x) \
-    x = dlopen("libSDL2.dylib", RTLD_LAZY)
+    x = dlopen("libSDL2-2.0.0.dylib", RTLD_LAZY)
 #endif /* defined(__linux__) || defined(__darwin__) */
 #define FREE_SOLIB(x) \
     dlclose(x); x = 0
 #define INIT_SUBSS(x) \
+    SDL20func.GLGetAttribute = (int (*)(SDL_GLattr, int *))dlsym(x, "SDL_GL_GetAttribute"); \
+    SDL20func.GLSetAttribute = (int (*)(SDL_GLattr, int))dlsym(x, "SDL_GL_SetAttribute"); \
     InitSubSystem = (int (*)(const int))dlsym(x, "SDL_InitSubSystem"); \
     unsetenv("SDL_VIDEODRIVER")
 #define QUIT_SUBSS(x) \
@@ -76,14 +78,22 @@ static void *hlib;
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 {
+    struct {
+        int (*GLGetAttribute)(SDL_GLattr, int *);
+        int (*GLSetAttribute)(SDL_GLattr, int);
+    } SDL20func = {
+        .GLGetAttribute = &SDL_GL_GetAttribute,
+        .GLSetAttribute = &SDL_GL_SetAttribute,
+    };
+
     if (!wnd) {
         const char *title = "SDL2-OpenGLide";
         uint32_t flags = (UserConfig.InitFullScreen)? SDL_WINDOW_FULLSCREEN_DESKTOP:0;
         window = SDL_CreateWindow(title, x, y, width, height, flags);
         if (window) {
             if (UserConfig.SamplesMSAA) {
-                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
-                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, UserConfig.SamplesMSAA);
+                SDL20func.GLSetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
+                SDL20func.GLSetAttribute(SDL_GL_MULTISAMPLESAMPLES, UserConfig.SamplesMSAA);
             }
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
             render = SDL_CreateRenderer(window, -1, 0);
@@ -97,16 +107,16 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
          *
          * Apple macOS NSWindow pointer has bit[32] set.
          */
+        int (*InitSubSystem)(const int);
+        LOAD_SOLIB(hlib);
+        INIT_SUBSS(hlib);
         if (!(wnd & ((uintptr_t)0xFFFE << 32))) {
-            int (*InitSubSystem)(const int);
-            LOAD_SOLIB(hlib);
-            INIT_SUBSS(hlib);
             if (InitSubSystem && !InitSubSystem(SDL_INIT_VIDEO))
                 window = SDL_CreateWindowFrom((const void *)wnd);
             if (window) {
                 if (UserConfig.SamplesMSAA) {
-                    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
-                    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, UserConfig.SamplesMSAA);
+                    SDL20func.GLSetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
+                    SDL20func.GLSetAttribute(SDL_GL_MULTISAMPLESAMPLES, UserConfig.SamplesMSAA);
                 }
                 SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
                 render = SDL_CreateRenderer(window, -1, 0);
@@ -131,14 +141,14 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     if (context) {
         int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits,
             cAuxBuffers, nSamples[2], has_sRGB = UserConfig.FramebufferSRGB;
-        SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &cRedBits);
-        SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &cGreenBits);
-        SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &cBlueBits);
-        SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &cAlphaBits);
-        SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &cDepthBits);
-        SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &cStencilBits);
-        SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &nSamples[0]);
-        SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &nSamples[1]);
+        SDL20func.GLGetAttribute(SDL_GL_RED_SIZE, &cRedBits);
+        SDL20func.GLGetAttribute(SDL_GL_GREEN_SIZE, &cGreenBits);
+        SDL20func.GLGetAttribute(SDL_GL_BLUE_SIZE, &cBlueBits);
+        SDL20func.GLGetAttribute(SDL_GL_ALPHA_SIZE, &cAlphaBits);
+        SDL20func.GLGetAttribute(SDL_GL_DEPTH_SIZE, &cDepthBits);
+        SDL20func.GLGetAttribute(SDL_GL_STENCIL_SIZE, &cStencilBits);
+        SDL20func.GLGetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &nSamples[0]);
+        SDL20func.GLGetAttribute(SDL_GL_MULTISAMPLESAMPLES, &nSamples[1]);
         glGetIntegerv(GL_AUX_BUFFERS, &cAuxBuffers);
 
         fprintf(stderr, "Info: %s OpenGL %s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));

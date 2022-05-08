@@ -429,7 +429,7 @@ static void drawstr(const char *str, const int colors)
     glDisable(GL_DEPTH_TEST);
 
     glEnable(GL_SCISSOR_TEST);
-    glScissor(11, 6, 11 + (8 * strlen(str)), (6 + 9));
+    glScissor((OpenGL.WindowOffset+11), 6, 11 + (8 * strlen(str)), (6 + 9));
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT);
     glListBase(fxstats.base);

@@ -352,7 +352,7 @@ public:
             hdll = LoadLibrary(libname);
         }
 #elif defined(MACOSX)
-	hdll = dlopen("libglide2x.dylib", RTLD_NOW);
+	hdll = dlopen("libglide2x.0.dylib", RTLD_NOW);
 #else
 	hdll = dlopen("libglide2x.so", RTLD_NOW);
 #endif
@@ -1356,10 +1356,10 @@ static void process_msg(Bitu value)
             float win_r, r = (1.f * glide.height / glide.width);
             Bitu win_w = GFX_ScaleWidth(win_r);
             win_w /= win_r;
-            if (win_w > glide.width) {
+            if (glide.fullscreen[0] || (win_w > glide.width)) {
                 glide.width = win_w;
                 glide.height = glide.width * r;
-                conf_glide2x(0x01, glide.width);
+                conf_glide2x((glide.fullscreen[0]? 0:1), glide.width);
             }
         } while(0);
 
