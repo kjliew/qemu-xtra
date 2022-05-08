@@ -1353,14 +1353,23 @@ static void process_msg(Bitu value)
 
         do {
             Bitu GFX_ScaleWidth(float &);
+            bool VOODOO_SRGB(void);
+            bool VOODOO_Stat(void);
+#define WRAPPER_FLAG_WINDOWED               (0x1)
+#define WRAPPER_FLAG_ANNOTATE               (0x10)
+#define WRAPPER_FLAG_FRAMEBUFFER_SRGB       (0x20)
+            uint32_t flags =
+                (glide.fullscreen[0]? 0:WRAPPER_FLAG_WINDOWED) |
+                (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
+                (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
             float win_r, r = (1.f * glide.height / glide.width);
             Bitu win_w = GFX_ScaleWidth(win_r);
             win_w /= win_r;
-            if (glide.fullscreen[0] || (win_w > glide.width)) {
+            if (win_w > glide.width) {
                 glide.width = win_w;
                 glide.height = glide.width * r;
-                conf_glide2x((glide.fullscreen[0]? 0:1), glide.width);
             }
+            conf_glide2x(flags, glide.width);
         } while(0);
 
 	// Resize window and disable updates

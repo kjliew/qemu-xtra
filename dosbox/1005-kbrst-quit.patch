@@ -1,0 +1,29 @@
+diff -ru ../dosbox-code-0/src/hardware/keyboard.cpp ./src/hardware/keyboard.cpp
+--- ../dosbox-code-0/src/hardware/keyboard.cpp	2022-05-08 08:08:53.493807200 -0700
++++ ./src/hardware/keyboard.cpp	2022-05-08 07:56:41.664598100 -0700
+@@ -214,6 +214,14 @@
+ 	case 0xd1:		/* Write to outport */
+ 		keyb.command=CMD_SETOUTPORT;
+ 		break;
++        case 0xfe:
++                do {
++                    void *BIOS_reboot_handler(void);
++                    Bitu (*BIOS_reboot)(void);
++                    BIOS_reboot = (Bitu (*)(void))BIOS_reboot_handler();
++                    BIOS_reboot();
++                } while(0);
++                break;
+ 	default:
+ 		LOG(LOG_KEYBOARD,LOG_ERROR)("Port 64 write with val %" sBitfs(X) ,val);
+ 		break;
+diff -ru ../dosbox-code-0/src/ints/bios.cpp ./src/ints/bios.cpp
+--- ../dosbox-code-0/src/ints/bios.cpp	2022-05-08 08:08:52.025026100 -0700
++++ ./src/ints/bios.cpp	2022-05-08 07:57:37.097557500 -0700
+@@ -1042,6 +1063,7 @@
+ 	throw 1;
+ 	return CBRET_NONE;
+ }
++void *BIOS_reboot_handler(void) { return (void *)&Reboot_Handler; }
+ 
+ void BIOS_SetEquipment(Bit16u equipment) {
+ 	mem_writew(BIOS_CONFIGURATION,equipment);

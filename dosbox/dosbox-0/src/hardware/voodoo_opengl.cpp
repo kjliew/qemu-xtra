@@ -1298,15 +1298,15 @@ static void drawstr(const char *str, const int colors)
     Bitu scale_w = scale_width, scale_h = scale_w * r;
     glPushMatrix();
     glPushAttrib(
-            GL_COLOR_BUFFER_BIT |
-            GL_CURRENT_BIT |
-            GL_DEPTH_BUFFER_BIT |
-            GL_LIGHTING_BIT |
-            GL_SCISSOR_BIT |
-            GL_TEXTURE_BIT |
-            GL_TRANSFORM_BIT |
-            GL_VIEWPORT_BIT |
-        0);
+        GL_COLOR_BUFFER_BIT |
+        GL_DEPTH_BUFFER_BIT |
+        GL_STENCIL_BUFFER_BIT |
+        GL_LIGHTING_BIT |
+        GL_SCISSOR_BIT |
+        GL_TEXTURE_BIT |
+        GL_TRANSFORM_BIT |
+        GL_VIEWPORT_BIT |
+        GL_CURRENT_BIT);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -1317,14 +1317,18 @@ static void drawstr(const char *str, const int colors)
         glUseProgramObjectARB(0);
         m_hProgramObject = 0;
     }
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
     glDisable(GL_TEXTURE_2D);
-    glDisable(GL_DEPTH_TEST);
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(11, 6, 11 + (8 * strlen(str)), (6 + 9));
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT);
+
     glListBase(fxstats.base);
     glColor3ubv((const GLubyte *)&colors);
     glRasterPos2i(13, 8);
@@ -2016,6 +2020,7 @@ void voodoo_ogl_leave(bool leavemode) {
 			SDL_FreeSurface(ogl_surface);
 			ogl_surface = NULL;
 		}
+                SDL_SetVideoMode_Wrap(v->fbi.width, v->fbi.height, 0,0);
 		GFX_RestoreMode();
 	}
 }

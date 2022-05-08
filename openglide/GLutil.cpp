@@ -409,29 +409,33 @@ static void drawstr(const char *str, const int colors)
 {
     glPushMatrix();
     glPushAttrib(
-            GL_COLOR_BUFFER_BIT |
-            GL_CURRENT_BIT |
-            GL_DEPTH_BUFFER_BIT |
-            GL_LIGHTING_BIT |
-            GL_SCISSOR_BIT |
-            GL_TEXTURE_BIT |
-            GL_TRANSFORM_BIT |
-            GL_VIEWPORT_BIT |
-        0);
+        GL_COLOR_BUFFER_BIT |
+        GL_DEPTH_BUFFER_BIT |
+        GL_STENCIL_BUFFER_BIT |
+        GL_LIGHTING_BIT |
+        GL_SCISSOR_BIT |
+        GL_TEXTURE_BIT |
+        GL_TRANSFORM_BIT |
+        GL_VIEWPORT_BIT |
+        GL_CURRENT_BIT);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     gluOrtho2D(0, OpenGL.WindowWidth, 0, OpenGL.WindowHeight);
 
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
     glDisable(GL_TEXTURE_2D);
-    glDisable(GL_DEPTH_TEST);
 
     glEnable(GL_SCISSOR_TEST);
     glScissor((OpenGL.WindowOffset+11), 6, 11 + (8 * strlen(str)), (6 + 9));
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT);
+
     glListBase(fxstats.base);
     glColor3ubv((const GLubyte *)&colors);
     glRasterPos2i(13, 8);
