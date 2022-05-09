@@ -61,6 +61,7 @@ fi
 if test x$have_sdl_lib = xyes ; then
     AC_DEFINE(C_USE_SDL)
     # Don't need SDLmain since we're a library
+    SDL_LIBS="${SDL_LIBS/-lSDL2main/}"
     LIBS="$LIBS ${SDL_LIBS/-lSDL2main/}"
     CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
 fi
