@@ -501,10 +501,13 @@ void annotate_stat(void)
 
 FX_ENTRY void FX_CALL setConfig(FxU32 flags, void *magic)
 {
+    if (magic) {
 #ifdef C_USE_SDL
-    uint32_t *SignSDL = (uint32_t *)magic;
-    *SignSDL = 0x324c4453; /*'SDL2'*/
+        uint32_t *SignSDL = (uint32_t *)magic;
+        *SignSDL = (*SignSDL == 0x58326724 /*'$g2X'*/)?
+            0x324c4453 /*'SDL2'*/:0;
 #endif
+    }
     UserConfig.EnableMipMaps = (UserConfig.EnableMipMaps == 0)?
         ((flags & WRAPPER_FLAG_MIPMAPS) != 0):UserConfig.EnableMipMaps;
     UserConfig.FramebufferSRGB = (UserConfig.FramebufferSRGB == 0)?
