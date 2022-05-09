@@ -100,12 +100,14 @@ static HINSTANCE hdll=NULL;	//  Handle to glide2x lib file
 #else
 static void * hdll=NULL;
 #endif
-static void (*setConfig)(const uint32_t flags);
+static uint32_t SignSDL;
+static void (*setConfig)(const uint32_t flags, void *);
 static void (*setConfigRes)(const int res);
 static void conf_glide2x(const uint32_t flags, const int res)
 {
+    SignSDL = 0;
     if (setConfig)
-        setConfig(flags);
+        setConfig(flags, &SignSDL);
     if (res && setConfigRes)
         setConfigRes(res);
 }
@@ -362,7 +364,7 @@ public:
 	    return;
 	}
 #ifdef WIN32
-        setConfig = (void (*)(const uint32_t))GetProcAddress(hdll, "_setConfig@4");
+        setConfig = (void (*)(const uint32_t, void *))GetProcAddress(hdll, "_setConfig@8");
         setConfigRes = (void (*)(const int))GetProcAddress(hdll, "_setConfigRes@4");
 #else
         setConfig = (void (*)(const uint32_t))dlsym(hdll, "setConfig");

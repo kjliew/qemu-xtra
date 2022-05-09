@@ -1908,6 +1908,7 @@ void voodoo_ogl_reset_videomode(void) {
             LOG_MSG("VOODOO: OpenGL: framebuffer sRGB enabled");
         }
 
+        LOG_MSG("VOODOO: %s OpenGL %s", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 	LOG_MSG("VOODOO: OpenGL: mode set, resolution %d:%d %s", v->fbi.width, v->fbi.height, (sdl_flags & SDL_FULLSCREEN) ? "(fullscreen)" : "");
         if (v->fbi.width != win_w)
             LOG_MSG("VOODOO: OpenGL: scaled at %d:%d", win_w, win_h);
