@@ -101,6 +101,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         self_wnd = (window)? true:false;
     }
     else {
+#if (SIZEOF_INT_P == 8)
         /* SDL_Window is a native pointer. On 64-bit system, native pointers
          * should have more than 32-bit values. Windows HWND and X11 Window handles
          * are always in 32-bit values.
@@ -123,6 +124,13 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             }
             wnd_from = (window)? true:false;
         }
+#else
+        /* Never perform foreign window conversion for 32-bit system,
+         * OpenGLide for 32-bit system should be configured for
+         * native window with `--disable-sdl`.
+         */
+        if (0) { }
+#endif
         else {
             uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
             if (!flags)
