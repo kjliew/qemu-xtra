@@ -35,7 +35,7 @@
     x = dlopen("libSDL2.so", RTLD_LAZY)
 #else /* defined(__darwin__) */
 #define LOAD_SOLIB(x) \
-    x = dlopen("libSDL2-2.0.0.dylib", RTLD_LAZY)
+    x = dlopen("libSDL2.dylib", RTLD_LAZY)
 #endif /* defined(__linux__) || defined(__darwin__) */
 #define FREE_SOLIB(x) \
     dlclose(x); x = 0

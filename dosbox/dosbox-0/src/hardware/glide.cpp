@@ -354,7 +354,7 @@ public:
             hdll = LoadLibrary(libname);
         }
 #elif defined(MACOSX)
-	hdll = dlopen("libglide2x.0.dylib", RTLD_NOW);
+	hdll = dlopen("libglide2x.dylib", RTLD_NOW);
 #else
 	hdll = dlopen("libglide2x.so", RTLD_NOW);
 #endif
