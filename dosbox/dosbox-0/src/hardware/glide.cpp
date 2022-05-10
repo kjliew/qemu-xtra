@@ -367,7 +367,7 @@ public:
         setConfig = (void (*)(const uint32_t, void *))GetProcAddress(hdll, "_setConfig@8");
         setConfigRes = (void (*)(const int))GetProcAddress(hdll, "_setConfigRes@4");
 #else
-        setConfig = (void (*)(const uint32_t))dlsym(hdll, "setConfig");
+        setConfig = (void (*)(const uint32_t, void *))dlsym(hdll, "setConfig");
         setConfigRes = (void (*)(const int))dlsym(hdll, "setConfigRes");
 #endif
 
