@@ -24,6 +24,8 @@
 #define FREE_SOLIB(x) \
     FreeLibrary((HMODULE)x); x = 0
 #define INIT_SUBSS(x) \
+    SDL20func.GLGetAttribute = (int (*)(SDL_GLattr, int *))GetProcAddress((HMODULE)x, "SDL_GL_GetAttribute"); \
+    SDL20func.GLSetAttribute = (int (*)(SDL_GLattr, int))GetProcAddress((HMODULE)x, "SDL_GL_SetAttribute"); \
     InitSubSystem = (int (*)(const int))GetProcAddress((HMODULE)x, "SDL_InitSubSystem"); \
     SetEnvironmentVariable("SDL_VIDEODRIVER", NULL)
 #define QUIT_SUBSS(x) \
@@ -149,6 +151,8 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     if (context) {
         int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits,
             cAuxBuffers, nSamples[2], has_sRGB = UserConfig.FramebufferSRGB;
+        if (SDL_GL_MakeCurrent(window, context))
+            fprintf(stderr, "%s\n", SDL_GetError());
         SDL20func.GLGetAttribute(SDL_GL_RED_SIZE, &cRedBits);
         SDL20func.GLGetAttribute(SDL_GL_GREEN_SIZE, &cGreenBits);
         SDL20func.GLGetAttribute(SDL_GL_BLUE_SIZE, &cBlueBits);
@@ -210,13 +214,13 @@ void FinaliseOpenGLWindow( void)
         SetGammaTable(&old_ramp);
     if ( self_ctx ) {
         self_ctx = false;
-        SDL_GL_MakeCurrent(window, NULL);
-        SDL_GL_DeleteContext(context);
+        if (SDL_GL_MakeCurrent(window, NULL) == 0)
+            SDL_GL_DeleteContext(context);
     }
     if ( self_wnd ) {
         self_wnd = false;
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "");
         SDL_DestroyWindow(window);
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "0");
     }
     if ( wnd_from ) {
         wnd_from = false;
