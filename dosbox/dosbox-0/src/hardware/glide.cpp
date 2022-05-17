@@ -100,16 +100,23 @@ static HINSTANCE hdll=NULL;	//  Handle to glide2x lib file
 #else
 static void * hdll=NULL;
 #endif
-static uint32_t SignSDL;
-static void (*setConfig)(const uint32_t flags, void *);
+static void (*setConfig)(const uint32_t flags, void *magic);
 static void (*setConfigRes)(const int res);
+static int SDLSignValid(const uint32_t sign)
+{
+    static uint32_t SDLSign;
+    SDLSign = (sign)? sign:SDLSign;
+    return (SDLSign == 0x324c4453/*'SDL2'*/);
+}
 static void conf_glide2x(const uint32_t flags, const int res)
 {
-    SignSDL = 0;
+    uint32_t sign = 0x58326724 /*'$g2X'*/;
     if (setConfig)
-        setConfig(flags, &SignSDL);
+        setConfig(flags, &sign);
     if (res && setConfigRes)
         setConfigRes(res);
+    if (sign)
+        SDLSignValid(sign);
 }
 
 #if LOG_GLIDE
