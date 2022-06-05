@@ -1,7 +1,7 @@
 diff -ru ../dosbox-code-0/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
 --- ../dosbox-code-0/src/dos/dos_programs.cpp	2022-05-04 07:31:44.769643800 -0700
 +++ ./src/dos/dos_programs.cpp	2022-05-02 13:33:03.163901100 -0700
-@@ -1391,12 +1391,12 @@
+@@ -1396,12 +1396,12 @@
  					WriteOut(MSG_Get("PROGRAM_IMGMOUNT_INVALID_GEOMETRY"));
  					return;
  				}
@@ -20,7 +20,7 @@ diff -ru ../dosbox-code-0/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
 diff -ru ../dosbox-code-0/src/dos/drive_fat.cpp ./src/dos/drive_fat.cpp
 --- ../dosbox-code-0/src/dos/drive_fat.cpp	2022-05-04 07:31:44.410276500 -0700
 +++ ./src/dos/drive_fat.cpp	2022-05-02 13:33:03.163901100 -0700
-@@ -700,7 +700,7 @@
+@@ -708,7 +708,7 @@
  	diskfile = fopen_wrap(sysFilename, "rb+");
  	if(!diskfile) {created_successfully = false;return;}
  	fseek(diskfile, 0L, SEEK_END);
