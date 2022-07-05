@@ -1,6 +1,5 @@
 #!/bin/sh
 
-MUNT_MT32="https://raw.githubusercontent.com/munt/munt/master/DOSBox-mt32-patch/dosbox-SVN-r4319-mt32-patch.diff"
 DEPS=" \
     curl \
     diff \
@@ -43,6 +42,10 @@ if [ x`uname` == xDarwin ] && [ x`uname -m` == xarm64 ]; then
     echo "** Apply $(ls ../200*.patch) **"
     patch -s -p0 -i $(ls ../200*.patch)
 fi
+MUNT_MT32=" \
+https://raw.githubusercontent.com/munt/munt/master/DOSBox-mt32-patch/dosbox-SVN-r4479-mt32-patch.diff
+" \
+
 echo "** Apply Munt/MT32 patch **"
 curl -s $MUNT_MT32 | patch -s -p1
 if [ ! -z $(find ./ | grep "\.rej$") ]; then
