@@ -1340,6 +1340,7 @@ static void drawstr(const char *str, const int colors)
 }
 
 Bitu VOODOO_FpsLimit();
+Bitu VOODOO_MSAA();
 bool VOODOO_SRGB();
 bool VOODOO_Stat();
 #ifndef NANOSECONDS_PER_SECOND
@@ -1769,6 +1770,11 @@ static void voodoo_ogl_init_attribute(bool *has_alpha, bool *has_stencil)
         *has_stencil = true;
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
+        if (VOODOO_MSAA()) {
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, SDL_TRUE);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,
+                    ((VOODOO_MSAA() << 2) > 8)? 16:(VOODOO_MSAA() << 2));
+        }
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 #if defined (WIN32) && SDL_VERSION_ATLEAST(1, 2, 11)
@@ -1903,6 +1909,13 @@ void voodoo_ogl_reset_videomode(void) {
 		LOG_MSG("VOODOO: OpenGL: invalid depth size %d",depth_csize);
 	}
 
+        if (VOODOO_MSAA()) {
+            int nSamples[2];
+            SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &nSamples[0]);
+            SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &nSamples[1]);
+            if (nSamples[0])
+                LOG_MSG("VOODOO: OpenGL: %dx MSAA sample buffers enabled", nSamples[1]);
+        }
         if (VOODOO_SRGB()) {
             glEnable(GL_FRAMEBUFFER_SRGB_EXT);
             LOG_MSG("VOODOO: OpenGL: framebuffer sRGB enabled");

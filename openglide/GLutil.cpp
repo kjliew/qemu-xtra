@@ -513,7 +513,7 @@ FX_ENTRY void FX_CALL setConfig(FxU32 flags, void *magic)
     UserConfig.FramebufferSRGB = (UserConfig.FramebufferSRGB == 0)?
         ((flags & WRAPPER_FLAG_FRAMEBUFFER_SRGB) != 0):UserConfig.FramebufferSRGB;
     UserConfig.SamplesMSAA = (UserConfig.SamplesMSAA == 0)?
-        ((flags & WRAPPER_FLAG_MSAA_MASK)? (1 << ((flags & WRAPPER_FLAG_MSAA_MASK) >> 2)):0):UserConfig.SamplesMSAA;
+        (((flags & WRAPPER_FLAG_MSAA_MASK) > 8)? 16:(flags & WRAPPER_FLAG_MSAA_MASK)):UserConfig.SamplesMSAA;
     UserConfig.Annotate = (UserConfig.Annotate == 0)?
         ((flags & WRAPPER_FLAG_ANNOTATE) != 0):UserConfig.Annotate;
     UserConfig.VsyncOff = ((flags & WRAPPER_FLAG_VSYNCOFF) != 0);

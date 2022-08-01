@@ -37,7 +37,7 @@ class VOODOO;
 static VOODOO* voodoo_dev;
 
 static Bit32u voodoo_current_lfb=(VOODOO_INITIAL_LFB&0xffff0000);
-static Bitu voodoo_width, voodoo_fps;
+static Bitu voodoo_width, voodoo_msaa, voodoo_fps;
 static bool voodoo_srgb, voodoo_stat;
 
 class VOODOO:public Module_base{
@@ -78,6 +78,7 @@ public:
 
                 voodoo_width = section->Get_int("voodooscale");
                 voodoo_fps = section->Get_int("voodoofps");
+                voodoo_msaa = section->Get_int("voodoomsaa");
                 voodoo_srgb = section->Get_bool("voodoosrgb");
                 voodoo_stat = section->Get_bool("voodoostat");
 
@@ -182,6 +183,7 @@ PageHandler* VOODOO_GetPageHandler() {
 
 Bitu VOODOO_ScaleWidth() { return voodoo_width; }
 Bitu VOODOO_FpsLimit() { return voodoo_fps; }
+Bitu VOODOO_MSAA() { return voodoo_msaa; }
 bool VOODOO_SRGB() { return voodoo_srgb; }
 bool VOODOO_Stat() { return voodoo_stat; }
 

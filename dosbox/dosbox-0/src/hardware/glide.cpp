@@ -1362,6 +1362,7 @@ static void process_msg(Bitu value)
 
         do {
             Bitu GFX_ScaleWidth(float &);
+            Bitu VOODOO_MSAA(void);
             bool VOODOO_SRGB(void);
             bool VOODOO_Stat(void);
 #define WRAPPER_FLAG_WINDOWED               (0x1)
@@ -1370,6 +1371,7 @@ static void process_msg(Bitu value)
             uint32_t flags =
                 (glide.fullscreen[0]? 0:WRAPPER_FLAG_WINDOWED) |
                 (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
+                (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
             float win_r, r = (1.f * glide.height / glide.width);
             Bitu win_w = GFX_ScaleWidth(win_r);
