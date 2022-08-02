@@ -1840,6 +1840,7 @@ void voodoo_ogl_reset_videomode(void) {
 	if ((ogl_surface != NULL) && (sdl_flags & SDL_FULLSCREEN)) SDL_Delay(500);
 
 	if (ogl_surface == NULL) {
+                full_sdl_restart = true;
 		if (full_sdl_restart) {
 			SDL_QuitSubSystem(SDL_INIT_VIDEO);
 			SDL_InitSubSystem(SDL_INIT_VIDEO);
@@ -1909,19 +1910,19 @@ void voodoo_ogl_reset_videomode(void) {
 		LOG_MSG("VOODOO: OpenGL: invalid depth size %d",depth_csize);
 	}
 
-        if (VOODOO_MSAA()) {
-            int nSamples[2];
-            SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &nSamples[0]);
-            SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &nSamples[1]);
-            if (nSamples[0])
-                LOG_MSG("VOODOO: OpenGL: %dx MSAA sample buffers enabled", nSamples[1]);
+        LOG_MSG("VOODOO: %s OpenGL %s", glGetString(GL_RENDERER), glGetString(GL_VERSION));
+        if (SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &value) == 0) {
+            int nSamples;
+            if (value) {
+                SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &nSamples);
+                LOG_MSG("VOODOO: OpenGL: %s%dx MSAA sample buffers enabled", (full_sdl_restart)? "restarted, ":"", nSamples);
+            }
         }
         if (VOODOO_SRGB()) {
             glEnable(GL_FRAMEBUFFER_SRGB_EXT);
             LOG_MSG("VOODOO: OpenGL: framebuffer sRGB enabled");
         }
 
-        LOG_MSG("VOODOO: %s OpenGL %s", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 	LOG_MSG("VOODOO: OpenGL: mode set, resolution %d:%d %s", v->fbi.width, v->fbi.height, (sdl_flags & SDL_FULLSCREEN) ? "(fullscreen)" : "");
         if (v->fbi.width != win_w)
             LOG_MSG("VOODOO: OpenGL: scaled at %d:%d", win_w, win_h);
