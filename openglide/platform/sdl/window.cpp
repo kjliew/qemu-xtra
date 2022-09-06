@@ -110,10 +110,10 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
          *
          * Apple macOS NSWindow pointer has bit[32] set.
          */
-        int (*InitSubSystem)(const int);
-        LOAD_SOLIB(hlib);
-        INIT_SUBSS(hlib);
         if (!(wnd & ((uintptr_t)0xFFFE << 32))) {
+            int (*InitSubSystem)(const int);
+            LOAD_SOLIB(hlib);
+            INIT_SUBSS(hlib);
             if (InitSubSystem && !InitSubSystem(SDL_INIT_VIDEO))
                 window = SDL_CreateWindowFrom((const void *)wnd);
             if (window) {
