@@ -18,27 +18,11 @@
 #include <stdlib.h>
 #include <math.h>
 
-#if defined(WIN32)
-#define LOAD_SOLIB(x) \
-    x = LoadLibrary("SDL2.dll")
-#define FREE_SOLIB(x) \
-    FreeLibrary((HMODULE)x); x = 0
-#define INIT_SUBSS(x) \
-    SDL20func.GLGetAttribute = (int (*)(SDL_GLattr, int *))GetProcAddress((HMODULE)x, "SDL_GL_GetAttribute"); \
-    SDL20func.GLSetAttribute = (int (*)(SDL_GLattr, int))GetProcAddress((HMODULE)x, "SDL_GL_SetAttribute"); \
-    InitSubSystem = (int (*)(const int))GetProcAddress((HMODULE)x, "SDL_InitSubSystem"); \
-    SetEnvironmentVariable("SDL_VIDEODRIVER", NULL)
-#define QUIT_SUBSS(x) \
-    QuitSubSystem = (void (*)(const int))GetProcAddress((HMODULE)x, "SDL_QuitSubSystem")
-#elif defined(__linux__) || defined(__darwin__)
+#if defined(__linux__) || defined(__darwin__)
 #include <dlfcn.h>
-#if defined(__linux__)
 #define LOAD_SOLIB(x) \
-    x = dlopen("libSDL2.so", RTLD_LAZY)
-#else /* defined(__darwin__) */
-#define LOAD_SOLIB(x) \
-    x = dlopen("libSDL2.dylib", RTLD_LAZY)
-#endif /* defined(__linux__) || defined(__darwin__) */
+    x = dlopen(dllname, RTLD_LAZY) ; \
+    if (!x) { fprintf(stderr, "Error loading %s\n", dllname); return false; }
 #define FREE_SOLIB(x) \
     dlclose(x); x = 0
 #define INIT_SUBSS(x) \
@@ -48,12 +32,19 @@
     unsetenv("SDL_VIDEODRIVER")
 #define QUIT_SUBSS(x) \
     QuitSubSystem = (void (*)(const int))dlsym(x, "SDL_QuitSubSystem")
-#else
+#else /* WIN32 */
 #define LOAD_SOLIB(x) \
-    InitSubSystem = 0
-#define FREE_SOLIB(x)
-#define INIT_SUBSS(x)
-#define QUIT_SUBSS(x)
+    x = LoadLibrary(dllname); \
+    if (!x) { fprintf(stderr, "Error loading %s\n", dllname); return false; }
+#define FREE_SOLIB(x) \
+    FreeLibrary((HMODULE)x); x = 0
+#define INIT_SUBSS(x) \
+    SDL20func.GLGetAttribute = (int (*)(SDL_GLattr, int *))GetProcAddress((HMODULE)x, "SDL_GL_GetAttribute"); \
+    SDL20func.GLSetAttribute = (int (*)(SDL_GLattr, int))GetProcAddress((HMODULE)x, "SDL_GL_SetAttribute"); \
+    InitSubSystem = (int (*)(const int))GetProcAddress((HMODULE)x, "SDL_InitSubSystem"); \
+    SetEnvironmentVariable("SDL_VIDEODRIVER", NULL)
+#define QUIT_SUBSS(x) \
+    QuitSubSystem = (void (*)(const int))GetProcAddress((HMODULE)x, "SDL_QuitSubSystem")
 #endif
 
 #include "SDL.h"
@@ -80,6 +71,15 @@ static void *hlib;
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 {
+    const char dllname[] =
+#if defined(__darwin__)
+        "libSDL2.dylib"
+#elif defined(__linux__)
+        "libSDL2.so"
+#else /* WIN32 */
+        "SDL2.dll"
+#endif
+    ;
     struct {
         int (*GLGetAttribute)(SDL_GLattr, int *);
         int (*GLSetAttribute)(SDL_GLattr, int);
@@ -110,10 +110,10 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
          *
          * Apple macOS NSWindow pointer has bit[32] set.
          */
+        int (*InitSubSystem)(const int);
+        LOAD_SOLIB(hlib);
+        INIT_SUBSS(hlib);
         if (!(wnd & ((uintptr_t)0xFFFE << 32))) {
-            int (*InitSubSystem)(const int);
-            LOAD_SOLIB(hlib);
-            INIT_SUBSS(hlib);
             if (InitSubSystem && !InitSubSystem(SDL_INIT_VIDEO))
                 window = SDL_CreateWindowFrom((const void *)wnd);
             if (window) {
@@ -135,7 +135,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 #endif
         else {
             uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
-            if (!flags)
+            if ((flags & SDL_WINDOW_OPENGL) == 0)
                 return false;
             window = (SDL_Window *)wnd;
             render = nullptr;
