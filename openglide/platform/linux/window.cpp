@@ -221,19 +221,21 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             int vidCount;
             XF86VidModeModeInfo **vidModes;
             if (XF86VidModeGetAllModeLines(dpy, DefaultScreen(dpy), &vidCount, &vidModes)) {
-                float r = (1.f * height) / width,
-                      win_r = (1.f * vidModes[0]->vdisplay) / vidModes[0]->hdisplay;
-                if (r == win_r) {
-                    OpenGL.WindowWidth = vidModes[0]->hdisplay;
-                    OpenGL.WindowHeight = vidModes[0]->vdisplay;
-                    OpenGL.WindowOffset = 0;
+                if (vidModes[0]->vdisplay > OpenGL.WindowHeight) {
+                    float r = (1.f * height) / width,
+                          win_r = (1.f * vidModes[0]->vdisplay) / vidModes[0]->hdisplay;
+                    if (r == win_r) {
+                        OpenGL.WindowWidth = vidModes[0]->hdisplay;
+                        OpenGL.WindowHeight = vidModes[0]->vdisplay;
+                        OpenGL.WindowOffset = 0;
+                    }
+                    else {
+                        OpenGL.WindowWidth = vidModes[0]->vdisplay / r;
+                        OpenGL.WindowHeight = vidModes[0]->vdisplay;
+                        OpenGL.WindowOffset = (vidModes[0]->hdisplay - OpenGL.WindowWidth) >> 1;
+                    }
+                    UserConfig.Resolution = OpenGL.WindowWidth;
                 }
-                else {
-                    OpenGL.WindowWidth = vidModes[0]->vdisplay / r;
-                    OpenGL.WindowHeight = vidModes[0]->vdisplay;
-                    OpenGL.WindowOffset = (vidModes[0]->hdisplay - OpenGL.WindowWidth) >> 1;
-                }
-                UserConfig.Resolution = OpenGL.WindowWidth;
                 XFree(vidModes);
             }
         }

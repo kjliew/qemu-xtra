@@ -274,6 +274,9 @@ grSstWinOpen(   FxU hwnd,
     }
 
     // Set the size of the OpenGL window (might be different from Glide window size)
+    if ((UserConfig.Resolution > 16) &&
+        (Glide.WindowWidth >= UserConfig.Resolution))
+        UserConfig.Resolution = 0;
     if (UserConfig.Resolution == 0)
     {
         // Use the resolution requested by the game
@@ -292,7 +295,7 @@ grSstWinOpen(   FxU hwnd,
         OpenGL.WindowWidth = UserConfig.Resolution;
         // calculate Glide height / width ratio
         float r = ((float)Glide.WindowHeight) / Glide.WindowWidth;
-        OpenGL.WindowHeight = UserConfig.Resolution * r;
+        OpenGL.WindowHeight = OpenGL.WindowWidth * r;
     }
 
     Glide.WindowTotalPixels = Glide.WindowWidth * Glide.WindowHeight;

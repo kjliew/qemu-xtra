@@ -171,7 +171,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         if (UserConfig.InitFullScreen) {
             int w, h;
             SDL_GetWindowSize(window, &w, &h);
-            if (w > OpenGL.WindowWidth) {
+            if (h > OpenGL.WindowHeight) {
                 float r = (1.f * height) / width,
                       win_r = (1.f * h) / w;
                 if (r == win_r) {

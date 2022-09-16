@@ -32,6 +32,9 @@
 
 #include "voodoo_vogl.h"
 #include "voodoo_types.h"
+#ifndef CLOCK_MONOTONIC
+#include <time.h>
+#endif
 #include "fgfont.h"
 
 /* texture data */
