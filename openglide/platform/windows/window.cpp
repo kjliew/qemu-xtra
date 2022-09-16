@@ -157,7 +157,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         else {
             RECT rect;
             GetWindowRect(GetDesktopWindow(), &rect);
-            if (rect.bottom > OpenGLWindow.Height) {
+            if (rect.bottom > OpenGL.WindowHeight) {
                 float r = (1.f * height) / width,
                       win_r = (1.f * rect.bottom) / rect.right;
                 if (r == win_r) {
