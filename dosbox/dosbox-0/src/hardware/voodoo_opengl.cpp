@@ -1911,6 +1911,8 @@ void voodoo_ogl_reset_videomode(void) {
 	}
 
         LOG_MSG("VOODOO: %s OpenGL %s", glGetString(GL_RENDERER), glGetString(GL_VERSION));
+        if (VOODOO_FpsLimit())
+            LOG_MSG("VOODOO: Frame rate limit %dFPS", VOODOO_FpsLimit());
         if (SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &value) == 0) {
             int nSamples;
             if (value) {
