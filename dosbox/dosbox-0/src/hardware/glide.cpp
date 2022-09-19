@@ -173,6 +173,15 @@ static void statWMInfo(void)
     // Get hwnd information
     SDL_SysWMinfo wmi;
     SDL_VERSION(&wmi.version);
+    if (SDLSignValid(0)) {
+        void *(*GetWindowSDL)(void) = (void *(*)(void))
+            SDL_GL_GetProcAddress("SDL12COMPAT_GetWindow");
+        if (GetWindowSDL) {
+            hwnd = (HostPt)GetWindowSDL();
+            if (hwnd)
+                return;
+        }
+    }
     if(SDL_GetWMInfo(&wmi)) {
 #if defined (WIN32)
 	hwnd = (HostPt)wmi.window;
