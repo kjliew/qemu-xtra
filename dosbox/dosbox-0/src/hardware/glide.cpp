@@ -185,10 +185,14 @@ static void statWMInfo(void)
     if(SDL_GetWMInfo(&wmi)) {
 #if defined (WIN32)
 	hwnd = (HostPt)wmi.window;
+#elif defined (MACOSX)
+        struct nswm {
+            SDL_version version;
+            void *nsWindowPtr;
+        } *nwp = (struct nswm *)&wmi;
+        hwnd = (HostPt)nwp->nsWindowPtr;
 #elif defined (SDL_VIDEO_DRIVER_X11)
 	hwnd = (HostPt)wmi.info.x11.window;
-#elif defined (SDL_VIDEO_DRIVER_QUARTZ)
-        hwnd = (HostPt)wmi.nsWindowPtr;
 #else
         hwnd = nullptr;
         LOG_MSG("SDL:Warn nullptr native window");
