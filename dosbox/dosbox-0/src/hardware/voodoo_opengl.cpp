@@ -2037,7 +2037,8 @@ void voodoo_ogl_leave(bool leavemode) {
 			SDL_FreeSurface(ogl_surface);
 			ogl_surface = NULL;
 		}
-                SDL_SetVideoMode_Wrap(v->fbi.width, v->fbi.height, 0,0);
+                SDL_SetVideoMode_Wrap(v->fbi.width, v->fbi.height, 0,
+                    GFX_IsFullscreen()? SDL_FULLSCREEN:0);
 		GFX_RestoreMode();
 	}
 }

@@ -224,7 +224,15 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	SDL_Rect updateRects[1024];
  	Bitu num_joysticks;
  #if defined (WIN32)
-@@ -401,7 +403,7 @@
+@@ -312,6 +314,7 @@
+ 	// Time when sdl regains focus (alt-tab) in windowed mode
+ 	Bit32u focus_ticks;
+ #endif
++        bool focus_lost;
+ 	// state of alt-keys for certain special handlings
+ 	Bit8u laltstate;
+ 	Bit8u raltstate;
+@@ -401,7 +404,7 @@
  	}
  
  	//PXX
@@ -233,7 +241,7 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  		height++;
  	}
  #endif //WIN32
-@@ -620,6 +622,10 @@
+@@ -620,6 +623,10 @@
  
  
  void GFX_ResetScreen(void) {
@@ -244,7 +252,7 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	GFX_Stop();
  	if (sdl.draw.callback)
  		(sdl.draw.callback)( GFX_CallBackReset );
-@@ -692,6 +698,17 @@
+@@ -692,6 +699,17 @@
  		sdl.surface=SDL_SetVideoMode_Wrap(sdl.clip.w,sdl.clip.h,bpp,sdl_flags);
  	}
  
@@ -262,7 +270,7 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	if (sdl.surface && sdl.surface->flags & SDL_FULLSCREEN) {
  		sdl.clip.x = (Sint16)((sdl.surface->w-sdl.clip.w)/2);
  		sdl.clip.y = (Sint16)((sdl.surface->h-sdl.clip.h)/2);
-@@ -711,6 +728,10 @@
+@@ -711,6 +729,10 @@
  		SDL_FreeSurface(sdl.blit.surface);
  		sdl.blit.surface=0;
  	}
@@ -273,7 +281,7 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  }
  
  #if C_OPENGL
-@@ -957,9 +978,9 @@
+@@ -957,9 +979,9 @@
  #if C_OPENGL
  	case SCREEN_OPENGL:
  	{
@@ -285,7 +293,7 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  		} else if (sdl.opengl.framebuf) {
  			free(sdl.opengl.framebuf);
  		}
-@@ -1166,6 +1187,7 @@
+@@ -1166,6 +1188,7 @@
  	}//CASE
  	if (retFlags)
  		GFX_Start();
@@ -293,7 +301,7 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	if (!sdl.mouse.autoenable) SDL_ShowCursor(sdl.mouse.autolock?SDL_DISABLE:SDL_ENABLE);
  	return retFlags;
  }
-@@ -1249,6 +1271,7 @@
+@@ -1249,6 +1272,7 @@
  		sticky_keys(true); //restore sticky keys to default state in windowed mode.
  #endif
  	}
@@ -301,7 +309,20 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	GFX_ResetScreen();
  }
  
-@@ -2036,6 +2059,9 @@
+@@ -2031,11 +2055,22 @@
+ 	sdl.laltstate=SDL_KEYUP;
+ 	sdl.raltstate=SDL_KEYUP;
+ 	MAPPER_LosingFocus();
++        sdl.focus_lost = true;
++}
++static void GFX_RegainFocus(void) {
++    if (sdl.focus_lost) {
++        sdl.focus_lost = false;
++        SetPriority(sdl.priority.focus);
++        CPU_Disable_SkipAutoAdjust();
++    }
+ }
+ 
  bool GFX_IsFullscreen(void) {
  	return sdl.desktop.fullscreen;
  }
@@ -311,16 +332,47 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  
  #if defined(MACOSX)
  #define DB_POLLSKIP 3
-@@ -2184,7 +2210,7 @@
+@@ -2108,10 +2143,13 @@
+ 				} else {
+ 					if (sdl.mouse.locked) {
+ #ifdef WIN32
++#if SDL_VERSION_ATLEAST(1, 2, 56)
++#else
+ 						if (sdl.desktop.fullscreen) {
+ 							VGA_KillDrawing();
+ 							GFX_ForceFullscreenExit();
+ 						}
++#endif /* sdl12-compat */
+ #endif
+ 						GFX_CaptureMouse();
+ 					}
+@@ -2184,7 +2222,8 @@
  			throw(0);
  			break;
  		case SDL_VIDEOEXPOSE:
 -			if (sdl.draw.callback) sdl.draw.callback( GFX_CallBackRedraw );
++                        GFX_RegainFocus();
 +			if ((sdl.draw.callback) && (!glide.enabled)) sdl.draw.callback( GFX_CallBackRedraw );
  			break;
  #ifdef WIN32
  		case SDL_KEYDOWN:
-@@ -2669,6 +2695,10 @@
+@@ -2507,12 +2546,15 @@
+ 
+ void Disable_OS_Scaling() {
+ #if defined (WIN32)
++#if SDL_VERSION_ATLEAST(1, 2, 56)
++#else
+ 	typedef BOOL (*function_set_dpi_pointer)();
+ 	function_set_dpi_pointer function_set_dpi;
+ 	function_set_dpi = (function_set_dpi_pointer) GetProcAddress(LoadLibrary("user32.dll"), "SetProcessDPIAware");
+ 	if (function_set_dpi) {
+ 		function_set_dpi();
+ 	}
++#endif /* sdl12-compat */
+ #endif
+ }
+ 
+@@ -2669,6 +2711,10 @@
  			if (strcmp(sdl_drv_name,"windib")==0) LOG_MSG("SDL_Init: Starting up with SDL windib video driver.\n          Try to update your video card and directx drivers!");
  		}
  #endif
