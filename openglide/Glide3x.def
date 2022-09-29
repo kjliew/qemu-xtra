@@ -95,4 +95,4 @@ _guFogGenerateLinear@12 = guFogGenerateLinear@12
 _guFogTableIndexToW@4 = guFogTableIndexToW@4
 _guGammaCorrectionRGB@12 = guGammaCorrectionRGB@12
 _setConfig@8 = setConfig@8
-_setConfigRes@4 = setConfigRes@8
+_setConfigRes@8 = setConfigRes@8

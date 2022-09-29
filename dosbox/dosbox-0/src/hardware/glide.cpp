@@ -385,7 +385,7 @@ public:
         GetWindowSDL = (void *(*)(void))SDL_GL_GetProcAddress("SDL12COMPAT_GetWindow");
 #ifdef WIN32
         setConfig = (void (*)(const uint32_t, void *))GetProcAddress(hdll, "_setConfig@8");
-        setConfigRes = (void (*)(const int, void *))GetProcAddress(hdll, "_setConfigRes@8");
+        setConfigRes = (void (*)(const int, void (*)()))GetProcAddress(hdll, "_setConfigRes@8");
 #else
         setConfig = (void (*)(const uint32_t, void *))dlsym(hdll, "setConfig");
         setConfigRes = (void (*)(const int,void (*)()))dlsym(hdll, "setConfigRes");
