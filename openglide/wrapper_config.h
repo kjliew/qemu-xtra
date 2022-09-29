@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 FX_ENTRY void FX_CALL setConfig(FxU32 flags, void *magic);
-FX_ENTRY void FX_CALL setConfigRes(int res);
+FX_ENTRY void FX_CALL setConfigRes(int res, void *swap12);
 
 #ifdef __cplusplus
 }

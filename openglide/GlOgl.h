@@ -260,6 +260,7 @@ struct ConfigStruct
     int     SamplesMSAA;
 
     float   Resolution;
+    void    *swap12;
 
     bool    FogEnable;
     bool    InitFullScreen;

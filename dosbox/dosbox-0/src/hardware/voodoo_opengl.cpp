@@ -1325,7 +1325,7 @@ static void drawstr(const char *str, const int colors)
     glDisable(GL_TEXTURE_2D);
 
     glEnable(GL_SCISSOR_TEST);
-    glScissor(11, 6, 11 + (8 * strlen(str)), (6 + 9));
+    glScissor(11, 6, 11 + (8 * strlen(str)), 14);
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT);
 

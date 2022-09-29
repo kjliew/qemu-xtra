@@ -432,7 +432,7 @@ static void drawstr(const char *str, const int colors)
     glDisable(GL_TEXTURE_2D);
 
     glEnable(GL_SCISSOR_TEST);
-    glScissor((OpenGL.WindowOffset+11), 6, 11 + (8 * strlen(str)), (6 + 9));
+    glScissor((OpenGL.WindowOffset+11), 6, 11 + (8 * strlen(str)), 14);
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -521,9 +521,10 @@ FX_ENTRY void FX_CALL setConfig(FxU32 flags, void *magic)
     UserConfig.InitFullScreen = (flags & WRAPPER_FLAG_WINDOWED)? false:true;
 }
 
-FX_ENTRY void FX_CALL setConfigRes(int res)
+FX_ENTRY void FX_CALL setConfigRes(int res, void *swap12)
 {
-    UserConfig.Resolution = (float)res;
+    UserConfig.Resolution = 1.f * res;
+    UserConfig.swap12 = swap12;
 }
 
 bool ClearAndGenerateLogFile( void )

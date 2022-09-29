@@ -147,8 +147,10 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             }
         }
     }
-    if (render)
+    if (render) {
         SDL_DestroyRenderer(render);
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "");
+    }
     context = SDL_GL_GetCurrentContext();
     if (!context) {
         context = SDL_GL_CreateContext(window);
@@ -225,7 +227,6 @@ void FinaliseOpenGLWindow( void)
     }
     if ( self_wnd ) {
         self_wnd = false;
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "");
         SDL_DestroyWindow(window);
     }
     if ( wnd_from ) {
@@ -285,6 +286,11 @@ void SwapBuffers()
     if (self_wnd) {
         SDL_Event e;
         while(SDL_PollEvent(&e));
+    }
+    if (UserConfig.swap12) {
+        void (*glSwapFunc)(void) = (void (*)(void))UserConfig.swap12;
+        glSwapFunc();
+        return;
     }
     SDL_GL_SwapWindow(window);
 }

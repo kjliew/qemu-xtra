@@ -128,4 +128,4 @@ _guTexMemQueryAvail@4 = guTexMemQueryAvail@4
 _guTexMemReset@0 = guTexMemReset@0
 _guTexSource@4 = guTexSource@4
 _setConfig@8 = setConfig@8
-_setConfigRes@4 = setConfigRes@4
+_setConfigRes@4 = setConfigRes@8
