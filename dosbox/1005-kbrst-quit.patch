@@ -1,7 +1,7 @@
 diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
 --- ../dosbox-code-0/src/gui/sdlmain.cpp	2022-05-08 20:15:40.000000000 -0700
 +++ ./src/gui/sdlmain.cpp	2022-05-08 20:08:29.000000000 -0700
-@@ -2825,6 +2825,25 @@
+@@ -2825,6 +2852,25 @@
  #endif
  }
  

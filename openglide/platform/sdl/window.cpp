@@ -176,9 +176,9 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 cAlphaBits,cBlueBits, cGreenBits, cRedBits, cDepthBits, cStencilBits,
                 cAuxBuffers, nSamples[0], nSamples[1], (has_sRGB)? "sRGB":"");
 
-        if (UserConfig.InitFullScreen) {
+        do {
             int w, h;
-            SDL_GetWindowSize(window, &w, &h);
+            SDL_GL_GetDrawableSize(window, &w, &h);
             if (h > OpenGL.WindowHeight) {
                 float r = (1.f * height) / width,
                       win_r = (1.f * h) / w;
@@ -194,7 +194,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 }
                 UserConfig.Resolution = OpenGL.WindowWidth;
             }
-        }
+        } while(0);
 
         if (UserConfig.QEmu && UserConfig.VsyncOff)
             SDL_GL_SetSwapInterval(0);

@@ -100,7 +100,6 @@ static HINSTANCE hdll=NULL;	//  Handle to glide2x lib file
 #else
 static void * hdll=NULL;
 #endif
-static void *(*GetWindowSDL)(void);
 static void (*setConfig)(const uint32_t flags, void *magic);
 static void (*setConfigRes)(const int res, void (*swap12)());
 static int SDLSignValid(const uint32_t sign)
@@ -115,7 +114,7 @@ static void conf_glide2x(const uint32_t flags, const int res)
     if (setConfig)
         setConfig(flags, &sign);
     if (setConfigRes)
-        setConfigRes(res, (GetWindowSDL)? &SDL_GL_SwapBuffers:0);
+        setConfigRes(res, 0);
     if (sign)
         SDLSignValid(sign);
 }
@@ -175,6 +174,8 @@ static void statWMInfo(void)
     SDL_SysWMinfo wmi;
     SDL_VERSION(&wmi.version);
     if (SDLSignValid(0)) {
+        void *(*GetWindowSDL)(void) = (void *(*)(void))
+            SDL_GL_GetProcAddress("SDL12COMPAT_GetWindow");
         if (GetWindowSDL) {
             hwnd = (HostPt)GetWindowSDL();
             return;
@@ -381,8 +382,6 @@ public:
 	    LOG_MSG("Glide:Unable to load glide2x library, glide emulation disabled");
 	    return;
 	}
-
-        GetWindowSDL = (void *(*)(void))SDL_GL_GetProcAddress("SDL12COMPAT_GetWindow");
 #ifdef WIN32
         setConfig = (void (*)(const uint32_t, void *))GetProcAddress(hdll, "_setConfig@8");
         setConfigRes = (void (*)(const int, void (*)()))GetProcAddress(hdll, "_setConfigRes@8");
@@ -566,7 +565,6 @@ void GLIDE_ResetScreen(bool update)
 	// and resize when mapper and/or GUI finish
 	  update)) {
 	    SDL_SetVideoMode_Wrap(glide.width,glide.height,0,
-                ((GetWindowSDL && SDLSignValid(0))? SDL_OPENGL:0) |
 		(glide.fullscreen[0]?SDL_FULLSCREEN:0)|SDL_ANYFORMAT|SDL_SWSURFACE);
 	}
 }
@@ -1387,7 +1385,6 @@ static void process_msg(Bitu value)
                 (VOODOO_Stat()? WRAPPER_FLAG_ANNOTATE:0) |
                 (VOODOO_MSAA() << 2) |
                 (VOODOO_SRGB()? WRAPPER_FLAG_FRAMEBUFFER_SRGB:0);
-            flags |= (GetWindowSDL)? WRAPPER_FLAG_WINDOWED:0;
             float win_r, r = (1.f * glide.height / glide.width);
             Bitu win_w = GFX_ScaleWidth(win_r);
             win_w /= win_r;
