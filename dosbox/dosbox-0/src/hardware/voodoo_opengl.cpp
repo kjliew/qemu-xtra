@@ -1500,10 +1500,17 @@ void voodoo_ogl_draw_z(int x, int y, int z) {
 
 	VOGL_SetAlphaMode(0, 0,0,0,0);
 
-	VOGL_BeginMode(GL_POINTS);
-//	glBegin(GL_POINTS);
-	glVertex3i(x, y, z);	// z adjustment??
-//	glEnd();
+        if (scale_width) {
+            VOGL_BeginMode(GL_QUADS);
+            glVertex3f((1.f*x)+0.5f,(1.f*y)+0.5f, z);
+            glVertex3f((1.f*x)+1.5f,(1.f*y)+0.5f, z);
+            glVertex3f((1.f*x)+1.5f,(1.f*y)+1.5f, z);
+            glVertex3f((1.f*x)+0.5f,(1.f*y)+1.5f, z);
+        }
+        else {
+            VOGL_BeginMode(GL_POINTS);
+            glVertex3f((1.f*x)+0.5f, (1.f*y)+0.5f, z);	// z adjustment??
+        }
 }
 
 void voodoo_ogl_draw_pixel_pipeline(int x, int y, int r, int g, int b) {
