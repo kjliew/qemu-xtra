@@ -136,12 +136,12 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         else {
             uint32_t flags = SDL_GetWindowFlags((SDL_Window *)wnd);
             window = (SDL_Window *)wnd;
-            render = SDL_GetRenderer(window);
-            if (render)
-                SDL_DestroyRenderer(render);
             if (flags & SDL_WINDOW_OPENGL)
                 render = nullptr;
             else {
+                render = SDL_GetRenderer(window);
+                if (render)
+                    SDL_DestroyRenderer(render);
                 SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
                 render = SDL_CreateRenderer(window, -1, 0);
             }
