@@ -257,12 +257,15 @@ void ValidateUserConfig( void )
         case OGL_EXT_REQUIRED:
             if ( ! OGLIsExtensionSupported( glNecessaryExt[ index ].name ) )
             {
-                char szError[ 256 ];
-                sprintf( szError, "Severe Problem: OpenGL %s extension is required for OpenGLide!", 
-                    glNecessaryExt[ index ].name );
-                Error( szError );
-                GlideMsg( szError );
-                ReportWarning( szError );
+                if (index || InternalConfig.OGLVersion < 102)
+                {
+                    char szError[ 256 ];
+                    sprintf( szError, "Severe Problem: OpenGL %s extension is required for OpenGLide!",
+                        glNecessaryExt[ index ].name );
+                    Error( szError );
+                    GlideMsg( szError );
+                    ReportWarning( szError );
+                }
             }
             break;
 
