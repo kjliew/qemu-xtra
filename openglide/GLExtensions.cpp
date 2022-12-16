@@ -242,7 +242,11 @@ void ValidateUserConfig( void )
 	int ver    = 0;
 	int subver = 0;
 
-	sscanf( (const char *)glGetString( GL_VERSION ), "%d.%d", &ver, &subver);
+        char *p = (char *)glGetString( GL_VERSION );
+        ver = strtol(p, 0, 10);
+        p = strchr(p, '.');
+        subver = strtol(++p, 0, 10);
+	//sscanf( (const char *)glGetString( GL_VERSION ), "%d.%d", &ver, &subver);
 
     InternalConfig.OGLVersion = ver * 100 + subver;
 

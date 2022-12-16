@@ -311,13 +311,25 @@ int Read3dfHeader( const char *filename, Gu3dfInfo *data )
     data->header.format = ParseTextureFormat( buffer );
 
     fgets( buffer, 255, file3df );
-    sscanf( buffer, "lod range: %d %d\n", &lod1, &lod2 );
+    if (!memcmp(buffer, "lod range: ", strlen("lod range: "))) {
+        char *p = buffer + strlen("lod range: ");
+        lod1 = strtol(p, 0, 10);
+        p = strchr(p, ' ');
+        lod2 = strtol(++p, 0, 10);
+    }
+    //sscanf( buffer, "lod range: %d %d\n", &lod1, &lod2 );
 
     data->header.small_lod = ParseLod( lod1 );
     data->header.large_lod = ParseLod( lod2 );
 
     fgets( buffer, 255, file3df );
-    sscanf( buffer, "aspect ratio: %d %d\n", &temp1, &temp2 );
+    if (!memcmp(buffer, "aspect ratio: ", strlen("aspect ratio: "))) {
+        char *p = buffer + strlen("aspect ratio: ");
+        temp1 = strtol(p, 0, 10);
+        p = strchr(p, ' ');
+        temp2 = strtol(++p, 0, 10);
+    }
+    //sscanf( buffer, "aspect ratio: %d %d\n", &temp1, &temp2 );
 
     data->header.aspect_ratio = ParseAspect( temp1, temp2 );
 
