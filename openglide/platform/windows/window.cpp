@@ -145,6 +145,14 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     mode_changed = false;
 
+#if (SIZEOF_INT_P == 4)
+    DISPLAY_DEVICE dd = { .cb = sizeof(DISPLAY_DEVICE) };
+    const char vidstr[] = "QEMU Bochs";
+    if (EnumDisplayDevices(NULL, 0, &dd, 0) &&
+        !memcmp(dd.DeviceString, vidstr, strlen(vidstr)))
+        UserConfig.QEmu = UserConfig.InitFullScreen = true;
+#endif
+
     if ( UserConfig.InitFullScreen )
     {
         if (!UserConfig.QEmu) {
