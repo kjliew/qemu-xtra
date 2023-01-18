@@ -46,6 +46,9 @@ AC_SUBST(SIZEOF_INT_P,$ac_cv_sizeof_int_p)
 dnl Check for the X11 library
 AC_PATH_XTRA
 
+dnl Look for clock_gettime
+AC_SEARCH_LIBS([clock_gettime], [rt pthread] , ,)
+
 AH_TEMPLATE(C_USE_SDL,[Define to use SDL library])
 AC_ARG_ENABLE(sdl,AC_HELP_STRING([--disable-sdl],[Disable SDL support]),,disable_sdl=no)
 
@@ -74,6 +77,7 @@ case "$target_cpu" in
   ;;
   i?86)
     AC_MSG_RESULT(x86 compatible)
+    LDFLAGS="$LDFLAGS -Wl,--enable-stdcall-fixup"
   ;;
   *)
    AC_MSG_RESULT(unknown)
