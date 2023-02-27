@@ -427,7 +427,13 @@ public:
 	char * path = (char*)texmem;
 	FILE * ovl = NULL;
 
-	const char * const dirname[] = { "./", "/usr/share/dosbox/", NULL };
+	const char * const dirname[] = { "./",
+#if defined (MACOSX)
+            "/opt/homebrew/share/dosbox/"
+#else
+            "/usr/share/dosbox/"
+#endif
+                , NULL };
 
 	for (int i = 0; dirname[i]; i++) {
 	    if((pdir = opendir(dirname[i]))) {
