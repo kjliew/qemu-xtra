@@ -238,6 +238,53 @@ ConvertAndDownloadRle( GrChipID_t        tmu,
         tmu, startAddress, thisLod, largeLod, aspectRatio, format, evenOdd, bm_h, u0, v0, width, height,
         dest_width, dest_height );
 #endif
+#if (SIZEOF_INT_P == 4)
+    FxU8 c, *texmem = new FxU8 [256 * 1024];
+    FxU32 scount = 0, dcount = 0, offset = 4 + bm_h;
+    FxU16 *tex = (FxU16 *)texmem, *src = tex + (dest_width * dest_height);
+    int j, k;
+
+    if (!texmem)
+        return;
+    // Line offset (v0)
+    for (j = 0; j < v0; j++)
+        offset += bm_data[4 + j];
+    // Write height lines
+    for (k = 0; k < height; k++) {
+        // Decode one RLE line
+        scount = offset;
+        while((c = bm_data[scount]) != 0xE0U) {
+            if (c > 0xE0U) {
+                for (int count = 0; count < (c & 0x1FU); count++) {
+                    // tlut is FxU16*
+                    src[dcount] = tlut[bm_data[scount + 1]];
+                    dcount++;
+                }
+                scount += 2;
+            }
+            else {
+                src[dcount] = tlut[c];
+                dcount++; scount++;
+            }
+        }
+        // Copy line into destination texture, offset u0
+        memcpy(tex + (k * dest_width), src + u0, dest_width * sizeof(FxU16));
+        offset += bm_data[4 + j++];
+        dcount = 0;
+    }
+    // One additional line
+    if (height < dest_height)
+        memcpy(tex + (k * dest_width), src + u0, dest_width * sizeof(FxU16));
+    // Download decoded texture
+    GrTexInfo info;
+    info.smallLod = thisLod;
+    info.largeLod = largeLod;
+    info.aspectRatio = aspectRatio;
+    info.format = format;
+    info.data = tex;
+    grTexDownloadMipMap(tmu, startAddress, evenOdd, &info);
+    delete[] texmem;
+#endif
 }
 
 //*************************************************
