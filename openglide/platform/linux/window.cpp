@@ -184,7 +184,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 }
             }
             else
-                fprintf(stderr, "Warn: Fallback to glXChooseVisual()\n");
+                fprintf(stderr, "Warn: %s\n", "Fallback to glXChooseVisual()");
         }
     }
 #endif
@@ -343,28 +343,45 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     glXMakeCurrent(dpy, win, ctx);
 
-    if (UserConfig.QEmu && UserConfig.VsyncOff) {
+    if (UserConfig.QEmu) {
         union {
             void (*glXProc)(Display *, GLXDrawable, int);
             void (*MesaProc)(int);
         } SwapIntervalEXT;
-        const int swapInterval = 0;
         if (find_xstr(xstr, "GLX_MESA_swap_control")) {
+            int (*GetSwapIntervalEXT)(void) = (int (*)(void))
+                OGLGetProcAddress("glXGetSwapIntervalMESA");
             SwapIntervalEXT.MesaProc = (void (*)(int))
                 OGLGetProcAddress("glXSwapIntervalMESA");
-            if (SwapIntervalEXT.MesaProc) {
-                SwapIntervalEXT.MesaProc(swapInterval);
-                fprintf(stderr, "    Use MESA SwapIntervalEXT(%d)\n", swapInterval);
+            if (GetSwapIntervalEXT && SwapIntervalEXT.MesaProc) {
+                if (UserConfig.VsyncOff) {
+                    if (GetSwapIntervalEXT())
+                        SwapIntervalEXT.MesaProc(0);
+                }
+                else if (UserConfig.OverrideSync &&
+                        (UserConfig.OverrideSync != GetSwapIntervalEXT()))
+                    SwapIntervalEXT.MesaProc(UserConfig.OverrideSync & 0x03U);
             }
         }
         else if (find_xstr(xstr, "GLX_EXT_swap_control")) {
             SwapIntervalEXT.glXProc = (void (*)(Display *, GLXDrawable, int))
                 OGLGetProcAddress("glXSwapIntervalEXT");
             if (SwapIntervalEXT.glXProc) {
-                SwapIntervalEXT.glXProc(dpy, win, swapInterval);
-                fprintf(stderr, "    Use GLX SwapIntervalEXT(%d)\n", swapInterval);
+                unsigned int swap;
+                if (UserConfig.VsyncOff) {
+                    glXQueryDrawable(dpy, win, GLX_SWAP_INTERVAL_EXT, &swap);
+                    if (swap)
+                        SwapIntervalEXT.glXProc(dpy, win, 0);
+                }
+                else if (UserConfig.OverrideSync) {
+                    glXQueryDrawable(dpy, win, GLX_SWAP_INTERVAL_EXT, &swap);
+                    if (UserConfig.OverrideSync != swap)
+                        SwapIntervalEXT.glXProc(dpy, win, UserConfig.OverrideSync & 0x03U);
+                }
             }
         }
+        else
+            fprintf(stderr, "Warn: %s\n", "GLX swap control unavailable");
     }
 
     aux_buffer = 0;

@@ -299,12 +299,20 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     hRC = wglCreateContext( hDC );
     wglMakeCurrent( hDC, hRC );
 
-    if (UserConfig.QEmu && UserConfig.VsyncOff) {
-        const int swapInterval = 0;
-        int (WINAPI *SwapIntervalEXT)(int) = (int (WINAPI *)(int))
+    if (UserConfig.QEmu) {
+        BOOL (WINAPI *SwapIntervalEXT)(int) = (BOOL (WINAPI *)(int))
             wglGetProcAddress("wglSwapIntervalEXT");
-        if (SwapIntervalEXT)
-            SwapIntervalEXT(swapInterval);
+        int (WINAPI *GetSwapIntervalEXT)(void) = (int (WINAPI *)(void))
+            wglGetProcAddress("wglGetSwapIntervalEXT");
+        if (GetSwapIntervalEXT && SwapIntervalEXT) {
+            if (UserConfig.VsyncOff) {
+                if (GetSwapIntervalEXT())
+                    SwapIntervalEXT(0);
+            }
+            else if (UserConfig.OverrideSync &&
+                    (UserConfig.OverrideSync != GetSwapIntervalEXT()))
+                SwapIntervalEXT(UserConfig.OverrideSync & 0x03U);
+        }
     }
 
     if (UserConfig.FramebufferSRGB)
