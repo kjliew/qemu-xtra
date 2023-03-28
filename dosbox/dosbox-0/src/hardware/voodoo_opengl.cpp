@@ -1398,11 +1398,12 @@ static void annotate_stat(void)
 
 static void swap_fpslimit(const Bitu fps) {
     static Bitu nexttick;
-    Bitu t = SDL_GetTicks();
-    nexttick = (nexttick == 0)? t:nexttick;
-    nexttick += 1000 / fps;
     while (SDL_GetTicks() < nexttick)
         SDL_Delay(1);
+    nexttick = SDL_GetTicks();
+    while (nexttick >= (UINT32_MAX - (1000 / fps)))
+        nexttick = SDL_GetTicks();
+    nexttick += (1000 / fps);
 }
 
 void voodoo_ogl_swap_buffer() {
