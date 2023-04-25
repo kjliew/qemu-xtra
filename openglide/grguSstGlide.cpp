@@ -7,7 +7,8 @@
 
 static bool InterpretScreenResolution(GrScreenResolution_t eResolution, FxU32 &width, FxU32 &height)
 {
-    if ( eResolution > GR_RESOLUTION_400x300 )
+    if (( eResolution < GR_RESOLUTION_320x200 ) ||
+        ( eResolution > GR_RESOLUTION_400x300 ))
         return false;
 
     static const FxU32 windowDimensions[16][2] =
