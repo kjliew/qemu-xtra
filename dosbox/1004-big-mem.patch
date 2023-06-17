@@ -1,6 +1,6 @@
 diff -ru ../dosbox-code-0/src/dosbox.cpp src/dosbox.cpp
---- ../dosbox-code-0/src/dosbox.cpp	2022-05-04 07:31:46.691532600 -0700
-+++ src/dosbox.cpp	2022-05-02 13:33:03.581032100 -0700
+--- ../dosbox-code-0/src/dosbox.cpp
++++ src/dosbox.cpp
 @@ -372,7 +372,7 @@
  	else if (mtype == "hercules") { machine = MCH_HERC; }
  	else if (mtype == "ega")      { machine = MCH_EGA; }
@@ -20,8 +20,8 @@ diff -ru ../dosbox-code-0/src/dosbox.cpp src/dosbox.cpp
  		"Amount of memory DOSBox has in megabytes.\n"
  		"This value is best left at its default to avoid problems with some games,\n"
 diff -ru ../dosbox-code-0/src/hardware/memory.cpp src/hardware/memory.cpp
---- ../dosbox-code-0/src/hardware/memory.cpp	2022-05-04 07:31:44.738356100 -0700
-+++ src/hardware/memory.cpp	2022-05-02 13:33:03.206368200 -0700
+--- ../dosbox-code-0/src/hardware/memory.cpp
++++ src/hardware/memory.cpp
 @@ -30,7 +30,7 @@
  
  #define PAGES_IN_BLOCK	((1024*1024)/MEM_PAGE_SIZE)
@@ -32,8 +32,8 @@ diff -ru ../dosbox-code-0/src/hardware/memory.cpp src/hardware/memory.cpp
  #define LFB_PAGES	512
  #define MAX_LINKS	((MAX_MEMORY*1024/4)+4096)		//Hopefully enough
 diff -ru ../dosbox-code-0/src/ints/bios.cpp src/ints/bios.cpp
---- ../dosbox-code-0/src/ints/bios.cpp	2022-05-04 07:31:45.363320100 -0700
-+++ src/ints/bios.cpp	2022-05-02 13:33:03.206368200 -0700
+--- ../dosbox-code-0/src/ints/bios.cpp
++++ src/ints/bios.cpp
 @@ -990,6 +990,27 @@
  		LOG(LOG_BIOS,LOG_NORMAL)("INT15:Function %X called, bios mouse not supported",reg_ah);
  		CALLBACK_SCF(true);

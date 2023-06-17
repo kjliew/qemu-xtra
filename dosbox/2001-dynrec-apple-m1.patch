@@ -1,6 +1,6 @@
 diff -ru orig/dosbox-r4466/src/cpu/core_dynrec.cpp dosbox-r4466/src/cpu/core_dynrec.cpp
---- orig/dosbox-r4466/src/cpu/core_dynrec.cpp	2021-10-13 20:10:36.000000000 -0700
-+++ ./src/cpu/core_dynrec.cpp	2021-10-13 20:18:50.000000000 -0700
+--- orig/dosbox-r4466/src/cpu/core_dynrec.cpp
++++ ./src/cpu/core_dynrec.cpp
 @@ -33,6 +33,8 @@
  #include <winbase.h>
  #endif
@@ -23,8 +23,8 @@ diff -ru orig/dosbox-r4466/src/cpu/core_dynrec.cpp dosbox-r4466/src/cpu/core_dyn
  				// let the normal core handle this instruction to avoid zero-sized blocks
  				Bitu old_cycles=CPU_Cycles;
 diff -ru orig/dosbox-r4466/src/cpu/dyn_cache.h dosbox-r4466/src/cpu/dyn_cache.h
---- orig/dosbox-r4466/src/cpu/dyn_cache.h	2021-10-13 20:10:36.000000000 -0700
-+++ ./src/cpu/dyn_cache.h	2021-10-13 20:18:50.000000000 -0700
+--- orig/dosbox-r4466/src/cpu/dyn_cache.h
++++ ./src/cpu/dyn_cache.h
 @@ -604,6 +604,24 @@
  #define PAGESIZE_TEMP 4096
  #endif

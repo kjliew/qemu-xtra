@@ -1,6 +1,6 @@
 diff -ru ../dosbox-code-0/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
---- ../dosbox-code-0/src/dos/dos_programs.cpp	2022-05-04 07:31:44.769643800 -0700
-+++ ./src/dos/dos_programs.cpp	2022-05-02 13:33:03.163901100 -0700
+--- ../dosbox-code-0/src/dos/dos_programs.cpp
++++ ./src/dos/dos_programs.cpp
 @@ -1396,12 +1396,12 @@
  					WriteOut(MSG_Get("PROGRAM_IMGMOUNT_INVALID_GEOMETRY"));
  					return;
@@ -18,8 +18,8 @@ diff -ru ../dosbox-code-0/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
  				LOG_MSG("autosized image file: %d:%d:%d:%d",sizes[0],sizes[1],sizes[2],sizes[3]);
  			}
 diff -ru ../dosbox-code-0/src/dos/drive_fat.cpp ./src/dos/drive_fat.cpp
---- ../dosbox-code-0/src/dos/drive_fat.cpp	2022-05-04 07:31:44.410276500 -0700
-+++ ./src/dos/drive_fat.cpp	2022-05-02 13:33:03.163901100 -0700
+--- ../dosbox-code-0/src/dos/drive_fat.cpp
++++ ./src/dos/drive_fat.cpp
 @@ -708,7 +708,7 @@
  	diskfile = fopen_wrap(sysFilename, "rb+");
  	if(!diskfile) {created_successfully = false;return;}

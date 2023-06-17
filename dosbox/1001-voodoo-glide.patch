@@ -1,6 +1,6 @@
 diff -ru ../dosbox-code-0/configure.ac ./configure.ac
---- ../dosbox-code-0/configure.ac	2022-05-04 22:19:48.160904500 -0700
-+++ configure.ac	2022-05-04 16:46:17.907575400 -0700
+--- ../dosbox-code-0/configure.ac
++++ configure.ac
 @@ -616,7 +616,7 @@
  dnl Some target detection and actions for them
  case "$host" in
@@ -11,8 +11,8 @@ diff -ru ../dosbox-code-0/configure.ac ./configure.ac
         if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
           LIBS="$LIBS -lws2_32"
 diff -ru ../dosbox-code-0/include/Makefile.am ./include/Makefile.am
---- ../dosbox-code-0/include/Makefile.am	2022-05-04 22:19:48.535864300 -0700
-+++ include/Makefile.am	2022-05-04 16:46:17.908070400 -0700
+--- ../dosbox-code-0/include/Makefile.am
++++ include/Makefile.am
 @@ -36,5 +36,6 @@
  support.h \
  timer.h \
@@ -21,8 +21,8 @@ diff -ru ../dosbox-code-0/include/Makefile.am ./include/Makefile.am
  video.h
  
 diff -ru ../dosbox-code-0/include/logging.h ./include/logging.h
---- ../dosbox-code-0/include/logging.h	2022-05-04 22:19:46.863149300 -0700
-+++ include/logging.h	2022-05-04 16:46:17.924026300 -0700
+--- ../dosbox-code-0/include/logging.h
++++ include/logging.h
 @@ -28,6 +28,7 @@
  	LOG_MOUSE,LOG_BIOS,LOG_GUI,LOG_MISC,
  	LOG_IO,
@@ -32,8 +32,8 @@ diff -ru ../dosbox-code-0/include/logging.h ./include/logging.h
  };
  
 diff -ru ../dosbox-code-0/include/mem.h ./include/mem.h
---- ../dosbox-code-0/include/mem.h	2022-05-04 22:19:47.394435000 -0700
-+++ include/mem.h	2022-05-04 16:46:17.937515000 -0700
+--- ../dosbox-code-0/include/mem.h
++++ include/mem.h
 @@ -173,6 +173,8 @@
  
  void MEM_BlockWrite(PhysPt pt,void const * const data,Bitu size);
@@ -44,8 +44,8 @@ diff -ru ../dosbox-code-0/include/mem.h ./include/mem.h
  void MEM_StrCopy(PhysPt pt,char * data,Bitu size);
  
 diff -ru ../dosbox-code-0/include/pci_bus.h ./include/pci_bus.h
---- ../dosbox-code-0/include/pci_bus.h	2022-05-04 22:19:48.520239600 -0700
-+++ include/pci_bus.h	2022-05-04 16:46:17.963875300 -0700
+--- ../dosbox-code-0/include/pci_bus.h
++++ include/pci_bus.h
 @@ -19,7 +19,7 @@
  #ifndef DOSBOX_PCI_H
  #define DOSBOX_PCI_H
@@ -67,8 +67,8 @@ diff -ru ../dosbox-code-0/include/pci_bus.h ./include/pci_bus.h
 +
  #endif
 diff -ru ../dosbox-code-0/include/video.h ./include/video.h
---- ../dosbox-code-0/include/video.h	2022-05-04 22:19:47.566289000 -0700
-+++ include/video.h	2022-05-04 16:46:17.983570900 -0700
+--- ../dosbox-code-0/include/video.h
++++ include/video.h
 @@ -60,6 +60,8 @@
  Bitu GFX_GetRGB(Bit8u red,Bit8u green,Bit8u blue);
  Bitu GFX_SetSize(Bitu width,Bitu height,Bitu flags,double scalex,double scaley,GFX_CallBack_t cb);
@@ -94,8 +94,8 @@ diff -ru ../dosbox-code-0/include/video.h ./include/video.h
  bool GFX_SDLUsingWinDIB(void);
  #endif
 diff -ru ../dosbox-code-0/src/cpu/paging.cpp ./src/cpu/paging.cpp
---- ../dosbox-code-0/src/cpu/paging.cpp	2022-05-04 22:19:45.657460600 -0700
-+++ src/cpu/paging.cpp	2022-05-04 16:46:17.998825400 -0700
+--- ../dosbox-code-0/src/cpu/paging.cpp
++++ src/cpu/paging.cpp
 @@ -144,6 +144,8 @@
  	old_cpudecoder=cpudecoder;
  	cpudecoder=&PageFaultCore;
@@ -115,8 +115,8 @@ diff -ru ../dosbox-code-0/src/cpu/paging.cpp ./src/cpu/paging.cpp
  	memcpy(&lflags,&old_lflags,sizeof(LazyFlags));
  	cpudecoder=old_cpudecoder;
 diff -ru ../dosbox-code-0/src/debug/debug_gui.cpp ./src/debug/debug_gui.cpp
---- ../dosbox-code-0/src/debug/debug_gui.cpp	2022-05-04 22:19:43.858555300 -0700
-+++ src/debug/debug_gui.cpp	2022-05-04 16:46:18.013446000 -0700
+--- ../dosbox-code-0/src/debug/debug_gui.cpp
++++ src/debug/debug_gui.cpp
 @@ -256,6 +256,8 @@
  	loggrp[LOG_IO].front="IO";
  	loggrp[LOG_PCI].front="PCI";
@@ -127,8 +127,8 @@ diff -ru ../dosbox-code-0/src/debug/debug_gui.cpp ./src/debug/debug_gui.cpp
  	Section_prop * sect=control->AddSection_prop("log",LOG_Init);
  	Prop_string* Pstring = sect->Add_string("logfile",Property::Changeable::Always,"");
 diff -ru ../dosbox-code-0/src/dosbox.cpp ./src/dosbox.cpp
---- ../dosbox-code-0/src/dosbox.cpp	2022-05-04 22:19:47.425747700 -0700
-+++ src/dosbox.cpp	2022-05-04 21:17:10.579755700 -0700
+--- ../dosbox-code-0/src/dosbox.cpp
++++ src/dosbox.cpp
 @@ -76,11 +76,13 @@
  
  #if defined(PCI_FUNCTIONALITY_ENABLED)
@@ -206,8 +206,8 @@ diff -ru ../dosbox-code-0/src/dosbox.cpp ./src/dosbox.cpp
  	secprop=control->AddSection_prop("dos",&DOS_Init,false);//done
  	secprop->AddInitFunction(&XMS_Init,true);//done
 diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
---- ../dosbox-code-0/src/gui/sdlmain.cpp	2022-05-04 22:19:48.270241300 -0700
-+++ src/gui/sdlmain.cpp	2022-05-04 16:46:18.060428700 -0700
+--- ../dosbox-code-0/src/gui/sdlmain.cpp
++++ src/gui/sdlmain.cpp
 @@ -49,6 +49,7 @@
  #include "cpu.h"
  #include "cross.h"
@@ -422,8 +422,8 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
 +}
 +
 diff -ru ../dosbox-code-0/src/hardware/Makefile.am ./src/hardware/Makefile.am
---- ../dosbox-code-0/src/hardware/Makefile.am	2022-05-04 22:19:44.467936900 -0700
-+++ src/hardware/Makefile.am	2022-05-04 16:46:18.091670900 -0700
+--- ../dosbox-code-0/src/hardware/Makefile.am
++++ src/hardware/Makefile.am
 @@ -2,14 +2,17 @@
  
  SUBDIRS = serialport mame
@@ -444,8 +444,8 @@ diff -ru ../dosbox-code-0/src/hardware/Makefile.am ./src/hardware/Makefile.am
  
  
 diff -ru ../dosbox-code-0/src/hardware/memory.cpp ./src/hardware/memory.cpp
---- ../dosbox-code-0/src/hardware/memory.cpp	2022-05-04 22:19:44.295973800 -0700
-+++ src/hardware/memory.cpp	2022-05-04 16:46:18.224258100 -0700
+--- ../dosbox-code-0/src/hardware/memory.cpp
++++ src/hardware/memory.cpp
 @@ -23,6 +23,8 @@
  #include "setup.h"
  #include "paging.h"
@@ -492,8 +492,8 @@ diff -ru ../dosbox-code-0/src/hardware/memory.cpp ./src/hardware/memory.cpp
  	mem_memcpy(dest,src,size);
  }
 diff -ru ../dosbox-code-0/src/hardware/pci_bus.cpp ./src/hardware/pci_bus.cpp
---- ../dosbox-code-0/src/hardware/pci_bus.cpp	2022-05-04 22:19:45.735577800 -0700
-+++ src/hardware/pci_bus.cpp	2022-05-04 16:46:18.091670900 -0700
+--- ../dosbox-code-0/src/hardware/pci_bus.cpp
++++ src/hardware/pci_bus.cpp
 @@ -19,12 +19,15 @@
  
  #include "dosbox.h"
@@ -584,8 +584,8 @@ diff -ru ../dosbox-code-0/src/hardware/pci_bus.cpp ./src/hardware/pci_bus.cpp
 +
  #endif
 diff -ru ../dosbox-code-0/src/hardware/pci_devices.h ./src/hardware/pci_devices.h
---- ../dosbox-code-0/src/hardware/pci_devices.h	2022-05-04 22:19:44.311599500 -0700
-+++ src/hardware/pci_devices.h	2022-05-04 16:46:18.107369400 -0700
+--- ../dosbox-code-0/src/hardware/pci_devices.h
++++ src/hardware/pci_devices.h
 @@ -16,3 +16,230 @@
   *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
   */
@@ -818,8 +818,8 @@ diff -ru ../dosbox-code-0/src/hardware/pci_devices.h ./src/hardware/pci_devices.
 +	}
 +};
 diff -ru ../dosbox-code-0/src/hardware/vga_s3.cpp ./src/hardware/vga_s3.cpp
---- ../dosbox-code-0/src/hardware/vga_s3.cpp	2022-05-04 22:19:44.092939900 -0700
-+++ src/hardware/vga_s3.cpp	2022-05-04 16:46:18.107369400 -0700
+--- ../dosbox-code-0/src/hardware/vga_s3.cpp
++++ src/hardware/vga_s3.cpp
 @@ -21,6 +21,7 @@
  #include "inout.h"
  #include "vga.h"

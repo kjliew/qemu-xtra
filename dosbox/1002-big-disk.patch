@@ -1,6 +1,6 @@
 diff -ru ../dosbox-code-0/include/bios_disk.h include/bios_disk.h
---- ../dosbox-code-0/include/bios_disk.h	2022-05-04 07:31:48.207160300 -0700
-+++ include/bios_disk.h	2022-05-02 13:33:03.126182900 -0700
+--- ../dosbox-code-0/include/bios_disk.h
++++ include/bios_disk.h
 @@ -66,10 +66,15 @@
  	Bit32u sector_size;
  	Bit32u heads,cylinders,sectors;
@@ -19,8 +19,8 @@ diff -ru ../dosbox-code-0/include/bios_disk.h include/bios_disk.h
  void incrementFDD(void);
  
 diff -ru ../dosbox-code-0/src/ints/bios_disk.cpp src/ints/bios_disk.cpp
---- ../dosbox-code-0/src/ints/bios_disk.cpp	2022-05-04 07:31:45.410194900 -0700
-+++ src/ints/bios_disk.cpp	2022-05-02 13:33:03.134160100 -0700
+--- ../dosbox-code-0/src/ints/bios_disk.cpp
++++ src/ints/bios_disk.cpp
 @@ -159,9 +159,9 @@
  }
  

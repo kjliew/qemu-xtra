@@ -1,6 +1,6 @@
 diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
---- ../dosbox-code-0/src/gui/sdlmain.cpp	2022-05-08 20:15:40.000000000 -0700
-+++ ./src/gui/sdlmain.cpp	2022-05-08 20:08:29.000000000 -0700
+--- ../dosbox-code-0/src/gui/sdlmain.cpp
++++ ./src/gui/sdlmain.cpp
 @@ -2825,6 +2852,25 @@
  #endif
  }
@@ -28,8 +28,8 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
  	width = sdl.draw.width;
  	height = sdl.draw.height;
 diff -ru ../dosbox-code-0/src/hardware/keyboard.cpp ./src/hardware/keyboard.cpp
---- ../dosbox-code-0/src/hardware/keyboard.cpp	2022-05-08 19:44:43.000000000 -0700
-+++ ./src/hardware/keyboard.cpp	2022-05-08 20:07:32.000000000 -0700
+--- ../dosbox-code-0/src/hardware/keyboard.cpp
++++ ./src/hardware/keyboard.cpp
 @@ -214,6 +214,14 @@
  	case 0xd1:		/* Write to outport */
  		keyb.command=CMD_SETOUTPORT;
