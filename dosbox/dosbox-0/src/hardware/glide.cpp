@@ -372,10 +372,22 @@ public:
             const char *libname = strcat(prefix, "glide2x.dll");
             hdll = LoadLibrary(libname);
         }
-#elif defined(MACOSX)
-	hdll = dlopen("libglide2x.dylib", RTLD_NOW);
 #else
-	hdll = dlopen("libglide2x.so", RTLD_NOW);
+        const char dllname[] =
+#if defined(MACOSX)
+            "libglide2x.dylib"
+#else
+            "libglide2x.so"
+#endif
+        ;
+	hdll = dlopen(dllname, RTLD_NOW);
+        if (!hdll) {
+            const char *local_lib;
+            char local_path[] = "/usr/local/lib/libglideXX.soname";
+            local_path[strlen("/usr/local/lib/")] = '\x0';
+            local_lib = strcat(local_path, dllname);
+            hdll = dlopen(local_lib, RTLD_NOW);
+        }
 #endif
 
 	if(!hdll) {

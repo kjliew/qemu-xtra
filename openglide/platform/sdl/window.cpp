@@ -22,6 +22,13 @@
 #include <dlfcn.h>
 #define LOAD_SOLIB(x) \
     x = dlopen(dllname, RTLD_LAZY) ; \
+    if (!x) { \
+        const char *local_lib; \
+        char local_path[] = "/usr/local/lib/libSDL2.soname"; \
+        local_path[strlen("/usr/local/lib/")] = '\x0'; \
+        local_lib = strcat(local_path, dllname); \
+        x = dlopen(local_lib, RTLD_LAZY); \
+    } \
     if (!x) { fprintf(stderr, "Error loading %s\n", dllname); return false; }
 #define FREE_SOLIB(x) \
     dlclose(x); x = 0
