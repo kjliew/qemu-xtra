@@ -805,6 +805,11 @@ static void process_msg(Bitu value)
 #if LOG_GLIDE
 	LOG_MSG("Glide:BufferSwap (0x%x)", b_swap);
 #endif
+        do {
+            void swap_fpslimit(const Bitu);
+            if (glide.swap_fps)
+                swap_fpslimit(glide.swap_fps);
+        } while(0);
 	break;
     case _grCheckForRoom4:
 	// void grCheckForRoom(FxI32 n)
@@ -1392,6 +1397,7 @@ static void process_msg(Bitu value)
 
         do {
             Bitu GFX_ScaleWidth(float &);
+            Bitu VOODOO_FpsLimit(void);
             Bitu VOODOO_MSAA(void);
             bool VOODOO_SRGB(void);
             bool VOODOO_Stat(void);
@@ -1410,6 +1416,7 @@ static void process_msg(Bitu value)
                 glide.width = win_w;
                 glide.height = glide.width * r;
             }
+            glide.swap_fps = VOODOO_FpsLimit();
             conf_glide2x(flags, glide.width);
         } while(0);
 
@@ -1434,6 +1441,8 @@ static void process_msg(Bitu value)
 	}
 
 	glide.lfb_pagehandler->SetLinPt(mem_readd(param[10]));
+        if (glide.swap_fps)
+            LOG_MSG("Glide:Frame rate limit [ %d FPS ]", glide.swap_fps);
 	LOG_MSG("Glide:Resolution:%dx%d, LFB at 0x%x (physical) / 0x%x (linear)",
 		glide.width, glide.height, glide.lfb_pagehandler->GetPhysPt(), glide.lfb_pagehandler->GetLinPt());
 	ret_value = G_OK;

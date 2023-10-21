@@ -1396,7 +1396,7 @@ static void annotate_stat(void)
     }
 }
 
-static void swap_fpslimit(const Bitu fps) {
+void swap_fpslimit(const Bitu fps) {
     static Bitu nexttick;
     while (SDL_GetTicks() < nexttick)
         SDL_Delay(1);
