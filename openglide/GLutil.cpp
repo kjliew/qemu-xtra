@@ -271,7 +271,7 @@ void GetOptions( void )
     UserConfig.EXT_paletted_texture         = true;
     UserConfig.EXT_texture_env_add          = false;
     UserConfig.EXT_texture_env_combine      = false;
-    UserConfig.EXT_vertex_array             = false;
+    UserConfig.EXT_vertex_array             = true;
     UserConfig.EXT_fog_coord                = true;
     UserConfig.EXT_blend_func_separate      = false;
     UserConfig.Wrap565to5551                = true;

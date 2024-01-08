@@ -274,7 +274,25 @@ void ValidateUserConfig( void )
             break;
 
         case OGL_EXT_DESIRED:
-            if ( ! OGLIsExtensionSupported( glNecessaryExt[ index ].name ) )
+            if ( !strcmp(glNecessaryExt[ index ].name, "GL_EXT_vertex_array") &&
+                     InternalConfig.OGLVersion >= 101 )
+            {
+                if ( *glNecessaryExt[ index ].userVar )
+                {
+                    *glNecessaryExt[ index ].internalVar = true;
+                    GlideMsg( "Extension %s is present and ENABLED\n", glNecessaryExt[ index ].name );
+                }
+                else
+                {
+                    char szError[ 256 ];
+                    sprintf( szError, "Note: OpenGL %s extension is supported but disabled by user\n",
+                        glNecessaryExt[ index ].name );
+                    GlideMsg( szError );
+
+                    *glNecessaryExt[ index ].internalVar = false;
+                }
+            }
+            else if ( ! OGLIsExtensionSupported( glNecessaryExt[ index ].name ) )
             {
                 char szError[ 256 ];
                 sprintf( szError, "Note: OpenGL %s extension is not supported, emulating behavior.\n", 

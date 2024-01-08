@@ -122,7 +122,7 @@ void RenderUpdateArrays( void )
     p_glSecondaryColorPointerEXT( 3, GL_FLOAT, 4 * sizeof( GLfloat ), &OGLRender.TColor2[0] );
     if ( InternalConfig.EXT_fog_coord )
     {
-        p_glFogCoordPointerEXT( 1, GL_FLOAT, &OGLRender.TFog[0] );
+        p_glFogCoordPointerEXT( GL_FLOAT, 0, &OGLRender.TFog[0] );
     }
 
 #ifdef OPENGL_DEBUG
@@ -274,7 +274,7 @@ void RenderDrawTriangles( void )
 
         glEnable( GL_POLYGON_OFFSET_FILL );
 
-        if ( 0 && InternalConfig.EXT_vertex_array ) // ????
+        if ( InternalConfig.EXT_vertex_array )
         {
             glColorPointer( 4, GL_FLOAT, 0, &OGLRender.TColor2 );
             glDrawArrays( GL_TRIANGLES, 0, OGLRender.NumberOfTriangles * 3 );
