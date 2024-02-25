@@ -1,0 +1,1694 @@
+diff -Nru ../dosbox-code-0/acinclude.m4 ./acinclude.m4
+--- ../dosbox-code-0/acinclude.m4
++++ ./acinclude.m4
+@@ -350,6 +350,11 @@
+ #define GCC_LIKELY(x) (x)
+ #endif])
+ 
++AH_BOTTOM([/* Enable MMX instruction set */
++#if C_FPU
++#define C_MMX 1
++#endif])
++
+ AH_BOTTOM([
+ typedef         double     Real64;
+ 
+diff -Nru ../dosbox-code-0/include/Makefile.am ./include/Makefile.am
+--- ../dosbox-code-0/include/Makefile.am
++++ ./include/Makefile.am
+@@ -20,6 +20,7 @@
+ logging.h \
+ mapper.h \
+ mem.h \
++mmx.h \
+ midi.h \
+ mixer.h \
+ mouse.h \
+diff -Nru ../dosbox-code-0/include/cpu.h ./include/cpu.h
+--- ../dosbox-code-0/include/cpu.h
++++ ./include/cpu.h
+@@ -46,6 +46,7 @@
+ #define CPU_ARCHTYPE_486OLDSLOW		0x40
+ #define CPU_ARCHTYPE_486NEWSLOW		0x45
+ #define CPU_ARCHTYPE_PENTIUMSLOW	0x50
++#define CPU_ARCHTYPE_PMMXSLOW		0x55
+ 
+ /* CPU Cycle Timing */
+ extern Bit32s CPU_Cycles;
+diff -Nru ../dosbox-code-0/include/fpu.h ./include/fpu.h
+--- ../dosbox-code-0/include/fpu.h
++++ ./include/fpu.h
+@@ -28,6 +28,10 @@
+ #include "mem.h"
+ #endif
+ 
++#if C_MMX
++#include "mmx.h"
++#endif
++
+ void FPU_ESC0_Normal(Bitu rm);
+ void FPU_ESC0_EA(Bitu func,PhysPt ea);
+ void FPU_ESC1_Normal(Bitu rm);
+@@ -60,11 +64,23 @@
+     } l;
+ #endif
+     Bit64s ll;
++
++#if C_MMX
++	MMX_reg reg_mmx;
++#endif
++
+ } FPU_Reg;
+ 
+ typedef struct {
+-    Bit32u m1;
+-    Bit32u m2;
++	union {
++		struct {
++			Bit32u m1;
++			Bit32u m2;
++		};
++#if C_MMX
++		MMX_reg reg_mmx;
++#endif
++	};
+     Bit16u m3;
+ 
+     Bit16u d1;
+diff -Nru ../dosbox-code-0/include/mmx.h ./include/mmx.h
+--- ../dosbox-code-0/include/mmx.h
++++ ./include/mmx.h
+@@ -0,0 +1,89 @@
++/*
++ *  Copyright (C) 2002-2021  The DOSBox Team
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++#ifndef DOSBOX_MMX_H
++#define DOSBOX_MMX_H
++
++typedef union {
++
++	Bit64u q;
++
++#ifndef WORDS_BIGENDIAN
++	struct {
++		Bit32u d0,d1;
++	} ud;
++
++	struct {
++		Bit32s d0,d1;
++	} sd;
++
++	struct {
++		Bit16u w0,w1,w2,w3;
++	} uw;
++
++	struct {
++		Bit16s w0,w1,w2,w3;
++	} sw;
++
++	struct {
++		Bit8u b0,b1,b2,b3,b4,b5,b6,b7;
++	} ub;
++
++	struct {
++		Bit8s b0,b1,b2,b3,b4,b5,b6,b7;
++	} sb;
++#else
++	struct {
++		Bit32u d1,d0;
++	} ud;
++
++	struct {
++		Bit32s d1,d0;
++	} sd;
++
++	struct {
++		Bit16u w3,w2,w1,w0;
++	} uw;
++
++	struct {
++		Bit16u w3,w2,w1,w0;
++	} sw;
++
++	struct {
++		Bit8u b7,b6,b5,b4,b3,b2,b1,b0;
++	} ub;
++
++	struct {
++		Bit8u b7,b6,b5,b4,b3,b2,b1,b0;
++	} sb;
++#endif
++
++} MMX_reg;
++
++extern MMX_reg * reg_mmx[8];
++extern MMX_reg * lookupRMregMM[256];
++
++
++Bit8s  SaturateWordSToByteS(Bit16s value);
++Bit16s SaturateDwordSToWordS(Bit32s value);
++Bit8u  SaturateWordSToByteU(Bit16s value);
++Bit16u SaturateDwordSToWordU(Bit32s value);
++
++void   setFPUTagEmpty();
++
++#endif
+\ No newline at end of file
+diff -Nru ../dosbox-code-0/src/cpu/Makefile.am ./src/cpu/Makefile.am
+--- ../dosbox-code-0/src/cpu/Makefile.am
++++ ./src/cpu/Makefile.am
+@@ -4,4 +4,4 @@
+ noinst_LIBRARIES = libcpu.a
+ libcpu_a_SOURCES = callback.cpp cpu.cpp flags.cpp modrm.cpp modrm.h core_full.cpp instructions.h	\
+ 		   paging.cpp lazyflags.h core_normal.cpp core_simple.cpp core_prefetch.cpp \
+-		   core_dyn_x86.cpp core_dynrec.cpp dyn_cache.h
++		   core_dyn_x86.cpp core_dynrec.cpp dyn_cache.h mmx.cpp
+diff -Nru ../dosbox-code-0/src/cpu/core_dyn_x86/Makefile.am ./src/cpu/core_dyn_x86/Makefile.am
+--- ../dosbox-code-0/src/cpu/core_dyn_x86/Makefile.am
++++ ./src/cpu/core_dyn_x86/Makefile.am
+@@ -1,2 +1,2 @@
+ noinst_HEADERS = helpers.h decoder.h risc_x86.h risc_x64.h string.h \
+-                 dyn_fpu.h dyn_fpu_dh.h
++                 dyn_fpu.h dyn_fpu_dh.h dyn_mmx.h
+diff -Nru ../dosbox-code-0/src/cpu/core_dyn_x86/decoder.h ./src/cpu/core_dyn_x86/decoder.h
+--- ../dosbox-code-0/src/cpu/core_dyn_x86/decoder.h
++++ ./src/cpu/core_dyn_x86/decoder.h
+@@ -18,7 +18,7 @@
+ 
+ 
+ #define X86_INLINED_MEMACCESS
+-
++#define X86_DYNREC_MMX_ENABLED
+ 
+ enum REP_Type {
+ 	REP_NONE=0,REP_NZ,REP_Z
+@@ -2167,6 +2167,11 @@
+ #endif
+ #include "dyn_fpu.h"
+ 
++#ifdef X86_DYNREC_MMX_ENABLED
++#include "dyn_mmx.h"
++#endif
++
++
+ static CacheBlock * CreateCacheBlock(CodePageHandler * codepage,PhysPt start,Bitu max_opcodes) {
+ 	Bits i;
+ /* Init a load of variables */
+@@ -2288,6 +2293,36 @@
+ 			case 0xbe:dyn_mov_ev_gb(true);break;
+ 			case 0xbf:dyn_mov_ev_gw(true);break;
+ 
++#if defined(X86_DYNREC_MMX_ENABLED)
++			/* OP mm, mm/m64 */
++			/* pack/unpacks, compares */
++			case 0x60:case 0x61:case 0x62:case 0x63:case 0x64:case 0x65:
++			case 0x66:case 0x67:case 0x68:case 0x69:case 0x6a:case 0x6b:
++			case 0x74:case 0x75:case 0x76:
++			/* mm-directed shifts, add/sub, bitwise, multiplies */
++			case 0xd1:case 0xd2:case 0xd3:case 0xd4:case 0xd5:case 0xd8:
++			case 0xd9:case 0xdb:case 0xdc:case 0xdd:case 0xdf:case 0xe1:
++			case 0xe2:case 0xe5:case 0xe8:case 0xe9:case 0xeb:case 0xec:
++			case 0xed:case 0xef:case 0xf1:case 0xf2:case 0xf3:case 0xf5:
++			case 0xf8:case 0xf9:case 0xfa:case 0xfc:case 0xfd:case 0xfe:
++			/* SHIFT mm, imm8*/
++			case 0x71:case 0x72:case 0x73:
++			/* MOVD mm, r/m32 */
++			case 0x6e:
++			/* MOVQ mm, mm/m64 */
++			case 0x6f:
++			/* MOVD r/m32, mm */
++			case 0x7e:
++			/* MOVQ mm/m64, mm */
++			case 0x7f:
++				if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegalopcode;
++				dyn_mmx_op(dual_code); break;
++			/* EMMS */
++			case 0x77:
++				if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegalopcode;
++				dyn_mmx_emms(); break;
++#endif
++
+ 			default:
+ #if DYN_LOG
+ 				LOG_MSG("Unhandled dual opcode 0F%02X",dual_code);
+diff -Nru ../dosbox-code-0/src/cpu/core_dyn_x86/dyn_mmx.h ./src/cpu/core_dyn_x86/dyn_mmx.h
+--- ../dosbox-code-0/src/cpu/core_dyn_x86/dyn_mmx.h
++++ ./src/cpu/core_dyn_x86/dyn_mmx.h
+@@ -0,0 +1,45 @@
++
++#include "mmx.h"
++
++extern Bit32u * lookupRMEAregd[256];
++
++#define LoadMd(off) mem_readd_inline(off)
++#define LoadMq(off) ((Bit64u)((Bit64u)mem_readd_inline(off+4)<<32 | (Bit64u)mem_readd_inline(off)))
++#define SaveMd(off,val)	mem_writed_inline(off,val)
++#define SaveMq(off,val) {mem_writed_inline(off,val&0xffffffff);mem_writed_inline(off+4,(val>>32)&0xffffffff);}
++
++#define CASE_0F_MMX(opcode) case(opcode):
++#define GetRM 
++#define GetEAa
++#define Fetchb() imm
++#define GetEArd	Bit32u * eard=lookupRMEAregd[rm];
++
++static void gen_mmx_op(Bitu op, Bitu rm, Bitu imm = 0, PhysPt eaa = 0) {
++	switch (op)
++	{
++#include "../core_normal/prefix_0f_mmx.h"
++	default:
++		break;
++	}
++illegal_opcode:
++	return;
++}
++
++static void dyn_mmx_op(Bitu op) {
++	Bitu imm = 0;
++	dyn_get_modrm();
++
++	if (decode.modrm.mod < 3) {
++		dyn_fill_ea();
++		gen_call_function((void*)&gen_mmx_op, "%Id%Id%Id%Drd", op, decode.modrm.val, imm, DREG(EA));
++	}
++	else {
++		if ((op == 0x71) || (op == 0x72) || (op == 0x73)) 
++			decode_fetchb_imm(imm);
++		gen_call_function((void*)&gen_mmx_op, "%Id%Id%Id", op, decode.modrm.val, imm);
++	}
++}
++
++static void dyn_mmx_emms() {
++	gen_call_function((void*)&setFPUTagEmpty, "");
++}
+\ No newline at end of file
+diff -Nru ../dosbox-code-0/src/cpu/core_normal/Makefile.am ./src/cpu/core_normal/Makefile.am
+--- ../dosbox-code-0/src/cpu/core_normal/Makefile.am
++++ ./src/cpu/core_normal/Makefile.am
+@@ -1,3 +1,3 @@
+ 
+ noinst_HEADERS = helpers.h prefix_none.h prefix_66.h prefix_0f.h support.h table_ea.h \
+-		prefix_66_0f.h string.h
++		prefix_66_0f.h string.h prefix_0f_mmx.h
+diff -Nru ../dosbox-code-0/src/cpu/core_normal/prefix_0f.h ./src/cpu/core_normal/prefix_0f.h
+--- ../dosbox-code-0/src/cpu/core_normal/prefix_0f.h
++++ ./src/cpu/core_normal/prefix_0f.h
+@@ -617,4 +617,8 @@
+ 	CASE_0F_W(0xcf)												/* BSWAP DI */
+ 		if (CPU_ArchitectureType<CPU_ARCHTYPE_486OLDSLOW) goto illegal_opcode;
+ 		BSWAPW(reg_di);break;
+-		
++#if C_MMX
++#define CASE_0F_MMX(x) CASE_0F_W(x)
++#include "prefix_0f_mmx.h"
++#undef CASE_0F_MMX
++#endif
+diff -Nru ../dosbox-code-0/src/cpu/core_normal/prefix_0f_mmx.h ./src/cpu/core_normal/prefix_0f_mmx.h
+--- ../dosbox-code-0/src/cpu/core_normal/prefix_0f_mmx.h
++++ ./src/cpu/core_normal/prefix_0f_mmx.h
+@@ -0,0 +1,1066 @@
++/*
++ *  Copyright (C) 2002-2021  The DOSBox Team
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++/* State Management */
++	CASE_0F_MMX(0x77)												/* EMMS */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		setFPUTagEmpty();
++		break;
++	}
++
++
++/* Data Movement */
++	CASE_0F_MMX(0x6e)												/* MOVD Pq,Ed */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* rmrq=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			GetEArd;
++			rmrq->ud.d0=*(Bit32u*)eard;
++			rmrq->ud.d1=0;
++		} else {
++			GetEAa;
++			rmrq->ud.d0=LoadMd(eaa);
++			rmrq->ud.d1=0;
++		}
++		break;
++	}
++	CASE_0F_MMX(0x7e)												/* MOVD Ed,Pq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* rmrq=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			GetEArd;
++			*(Bit32u*)eard=rmrq->ud.d0;
++		} else {
++			GetEAa;
++			SaveMd(eaa,rmrq->ud.d0);
++		}
++		break;
++	}
++
++	CASE_0F_MMX(0x6f)												/* MOVQ Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			MMX_reg* src=reg_mmx[rm&7];
++			dest->q = src->q;
++		} else {
++			GetEAa;
++			dest->q=LoadMq(eaa);
++		}
++		break;
++	}
++	CASE_0F_MMX(0x7f)												/* MOVQ Qq,Pq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			MMX_reg* src=reg_mmx[rm&7];
++			src->q = dest->q;
++		} else {
++			GetEAa;
++			SaveMq(eaa,dest->q);
++		}
++		break;
++	}
++
++/* Boolean Logic */
++	CASE_0F_MMX(0xef)												/* PXOR Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			MMX_reg* src=reg_mmx[rm&7];
++			dest->q ^= src->q;
++		} else {
++			GetEAa;
++			dest->q ^= LoadMq(eaa);
++		}
++		break;
++	}
++
++	CASE_0F_MMX(0xeb)												/* POR Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			MMX_reg* src=reg_mmx[rm&7];
++			dest->q |= src->q;
++		} else {
++			GetEAa;
++			dest->q |= LoadMq(eaa);
++		}
++		break;
++	}
++	CASE_0F_MMX(0xdb)												/* PAND Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			MMX_reg* src=reg_mmx[rm&7];
++			dest->q &= src->q;
++		} else {
++			GetEAa;
++			dest->q &= LoadMq(eaa);
++		}
++		break;
++	}
++	CASE_0F_MMX(0xdf)												/* PANDN Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		if (rm>=0xc0) {
++			MMX_reg* src=reg_mmx[rm&7];
++			dest->q = ~dest->q & src->q;
++		} else {
++			GetEAa;
++			dest->q = ~dest->q & LoadMq(eaa);
++		}
++		break;
++	}
++
++/* Shift */
++	CASE_0F_MMX(0xf1)												/* PSLLW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (src.ub.b0 > 15) dest->q = 0;
++		else {
++			dest->uw.w0 <<= src.ub.b0;
++			dest->uw.w1 <<= src.ub.b0;
++			dest->uw.w2 <<= src.ub.b0;
++			dest->uw.w3 <<= src.ub.b0;
++		}
++		break;
++	}
++	CASE_0F_MMX(0xd1)												/* PSRLW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (src.ub.b0 > 15) dest->q = 0;
++		else {
++			dest->uw.w0 >>= src.ub.b0;
++			dest->uw.w1 >>= src.ub.b0;
++			dest->uw.w2 >>= src.ub.b0;
++			dest->uw.w3 >>= src.ub.b0;
++		}
++		break;
++	}
++	CASE_0F_MMX(0xe1)												/* PSRAW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		MMX_reg tmp;
++		tmp.q = dest->q;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (!src.q) break;
++		if (src.ub.b0 > 15) {
++			dest->uw.w0 = (tmp.uw.w0&0x8000)?0xffff:0;
++			dest->uw.w1 = (tmp.uw.w1&0x8000)?0xffff:0;
++			dest->uw.w2 = (tmp.uw.w2&0x8000)?0xffff:0;
++			dest->uw.w3 = (tmp.uw.w3&0x8000)?0xffff:0;
++		} else {
++			dest->uw.w0 >>= src.ub.b0;
++			dest->uw.w1 >>= src.ub.b0;
++			dest->uw.w2 >>= src.ub.b0;
++			dest->uw.w3 >>= src.ub.b0;
++			if (tmp.uw.w0&0x8000) dest->uw.w0 |= (0xffff << (16 - src.ub.b0));
++			if (tmp.uw.w1&0x8000) dest->uw.w1 |= (0xffff << (16 - src.ub.b0));
++			if (tmp.uw.w2&0x8000) dest->uw.w2 |= (0xffff << (16 - src.ub.b0));
++			if (tmp.uw.w3&0x8000) dest->uw.w3 |= (0xffff << (16 - src.ub.b0));
++		}
++		break;
++	}
++	CASE_0F_MMX(0x71)												/* PSLLW/PSRLW/PSRAW Pq,Ib */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		Bit8u op=(rm>>3)&7;
++		Bit8u shift=Fetchb();
++		MMX_reg* dest=reg_mmx[rm&7];
++		switch (op) {
++			case 0x06: 	/*PSLLW*/
++				if (shift > 15) dest->q = 0;
++				else {
++					dest->uw.w0 <<= shift;
++					dest->uw.w1 <<= shift;
++					dest->uw.w2 <<= shift;
++					dest->uw.w3 <<= shift;
++				}
++				break;
++			case 0x02:  /*PSRLW*/
++				if (shift > 15) dest->q = 0;
++				else {
++					dest->uw.w0 >>= shift;
++					dest->uw.w1 >>= shift;
++					dest->uw.w2 >>= shift;
++					dest->uw.w3 >>= shift;
++				}
++				break;
++			case 0x04:  /*PSRAW*/
++				MMX_reg tmp;
++				if (!shift) break;
++				tmp.q = dest->q;
++				if (shift > 15) {
++					dest->uw.w0 = (tmp.uw.w0&0x8000)?0xffff:0;
++					dest->uw.w1 = (tmp.uw.w1&0x8000)?0xffff:0;
++					dest->uw.w2 = (tmp.uw.w2&0x8000)?0xffff:0;
++					dest->uw.w3 = (tmp.uw.w3&0x8000)?0xffff:0;
++				} else {
++					dest->uw.w0 >>= shift;
++					dest->uw.w1 >>= shift;
++					dest->uw.w2 >>= shift;
++					dest->uw.w3 >>= shift;
++					if (tmp.uw.w0&0x8000) dest->uw.w0 |= (0xffff << (16 - shift));
++					if (tmp.uw.w1&0x8000) dest->uw.w1 |= (0xffff << (16 - shift));
++					if (tmp.uw.w2&0x8000) dest->uw.w2 |= (0xffff << (16 - shift));
++					if (tmp.uw.w3&0x8000) dest->uw.w3 |= (0xffff << (16 - shift));
++				}
++				break;
++		}
++		break;
++	}
++	CASE_0F_MMX(0xf2)												/* PSLLD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (src.ub.b0 > 31) dest->q = 0;
++		else {
++			dest->ud.d0 <<= src.ub.b0;
++			dest->ud.d1 <<= src.ub.b0;
++		}
++		break;
++	}
++	CASE_0F_MMX(0xd2)												/* PSRLD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (src.ub.b0 > 31) dest->q = 0;
++		else {
++			dest->ud.d0 >>= src.ub.b0;
++			dest->ud.d1 >>= src.ub.b0;
++		}
++		break;
++	}
++	CASE_0F_MMX(0xe2)												/* PSRAD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		MMX_reg tmp;
++		tmp.q = dest->q;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (!src.q) break;
++		if (src.ub.b0 > 31) {
++			dest->ud.d0 = (tmp.ud.d0&0x80000000)?0xffffffff:0;
++			dest->ud.d1 = (tmp.ud.d1&0x80000000)?0xffffffff:0;
++		} else {
++			dest->ud.d0 >>= src.ub.b0;
++			dest->ud.d1 >>= src.ub.b0;
++			if (tmp.ud.d0&0x80000000) dest->ud.d0 |= (0xffffffff << (32 - src.ub.b0));
++			if (tmp.ud.d1&0x80000000) dest->ud.d1 |= (0xffffffff << (32 - src.ub.b0));
++		}
++		break;
++	}
++	CASE_0F_MMX(0x72)												/* PSLLD/PSRLD/PSRAD Pq,Ib */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		Bit8u op=(rm>>3)&7;
++		Bit8u shift=Fetchb();
++		MMX_reg* dest=reg_mmx[rm&7];
++		switch (op) {
++			case 0x06: 	/*PSLLD*/
++				if (shift > 31) dest->q = 0;
++				else {
++					dest->ud.d0 <<= shift;
++					dest->ud.d1 <<= shift;
++				}
++				break;
++			case 0x02:  /*PSRLD*/
++				if (shift > 31) dest->q = 0;
++				else {
++					dest->ud.d0 >>= shift;
++					dest->ud.d1 >>= shift;
++				}
++				break;
++			case 0x04:  /*PSRAD*/
++				MMX_reg tmp;
++				if (!shift) break;
++				tmp.q = dest->q;
++				if (shift > 31) { 
++					dest->ud.d0 = (tmp.ud.d0&0x80000000)?0xffffffff:0;
++					dest->ud.d1 = (tmp.ud.d1&0x80000000)?0xffffffff:0;
++				} else {
++					dest->ud.d0 >>= shift;
++					dest->ud.d1 >>= shift;
++					if (tmp.ud.d0&0x80000000) dest->ud.d0 |= (0xffffffff << (32 - shift));
++					if (tmp.ud.d1&0x80000000) dest->ud.d1 |= (0xffffffff << (32 - shift));
++				}
++				break;
++		}
++		break;
++	}
++
++	CASE_0F_MMX(0xf3)												/* PSLLQ Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (src.ub.b0 > 63) dest->q = 0;
++		else dest->q <<= src.ub.b0;
++		break;
++	}
++	CASE_0F_MMX(0xd3)												/* PSRLQ Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q=LoadMq(eaa);
++		}
++		if (src.ub.b0 > 63) dest->q = 0;
++		else dest->q >>= src.ub.b0;
++		break;
++	}
++	CASE_0F_MMX(0x73)												/* PSLLQ/PSRLQ Pq,Ib */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		Bit8u shift=Fetchb();
++		MMX_reg* dest=reg_mmx[rm&7];
++		if (shift > 63) dest->q = 0;
++		else {
++			Bit8u op=rm&0x20;
++			if (op) {
++				dest->q <<= shift;
++			} else {
++				dest->q >>= shift;
++			}
++		}
++		break;
++	}
++
++/* Math */
++	CASE_0F_MMX(0xFC)												/* PADDB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 += src.ub.b0;
++		dest->ub.b1 += src.ub.b1;
++		dest->ub.b2 += src.ub.b2;
++		dest->ub.b3 += src.ub.b3;
++		dest->ub.b4 += src.ub.b4;
++		dest->ub.b5 += src.ub.b5;
++		dest->ub.b6 += src.ub.b6;
++		dest->ub.b7 += src.ub.b7;
++		break;
++	}
++	CASE_0F_MMX(0xFD)												/* PADDW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w0 += src.uw.w0;
++		dest->uw.w1 += src.uw.w1;
++		dest->uw.w2 += src.uw.w2;
++		dest->uw.w3 += src.uw.w3;
++		break;
++	}
++	CASE_0F_MMX(0xFE)												/* PADDD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ud.d0 += src.ud.d0;
++		dest->ud.d1 += src.ud.d1;
++		break;
++	}
++	CASE_0F_MMX(0xEC)												/* PADDSB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->sb.b0 = SaturateWordSToByteS((Bit16s)dest->sb.b0+(Bit16s)src.sb.b0);
++		dest->sb.b1 = SaturateWordSToByteS((Bit16s)dest->sb.b1+(Bit16s)src.sb.b1);
++		dest->sb.b2 = SaturateWordSToByteS((Bit16s)dest->sb.b2+(Bit16s)src.sb.b2);
++		dest->sb.b3 = SaturateWordSToByteS((Bit16s)dest->sb.b3+(Bit16s)src.sb.b3);
++		dest->sb.b4 = SaturateWordSToByteS((Bit16s)dest->sb.b4+(Bit16s)src.sb.b4);
++		dest->sb.b5 = SaturateWordSToByteS((Bit16s)dest->sb.b5+(Bit16s)src.sb.b5);
++		dest->sb.b6 = SaturateWordSToByteS((Bit16s)dest->sb.b6+(Bit16s)src.sb.b6);
++		dest->sb.b7 = SaturateWordSToByteS((Bit16s)dest->sb.b7+(Bit16s)src.sb.b7);
++		break;
++	}
++	CASE_0F_MMX(0xED)												/* PADDSW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->sw.w0 = SaturateDwordSToWordS((Bit32s)dest->sw.w0+(Bit32s)src.sw.w0);
++		dest->sw.w1 = SaturateDwordSToWordS((Bit32s)dest->sw.w1+(Bit32s)src.sw.w1);
++		dest->sw.w2 = SaturateDwordSToWordS((Bit32s)dest->sw.w2+(Bit32s)src.sw.w2);
++		dest->sw.w3 = SaturateDwordSToWordS((Bit32s)dest->sw.w3+(Bit32s)src.sw.w3);
++		break;
++	}
++	CASE_0F_MMX(0xDC)												/* PADDUSB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 = SaturateWordSToByteU((Bit16s)dest->ub.b0+(Bit16s)src.ub.b0);
++		dest->ub.b1 = SaturateWordSToByteU((Bit16s)dest->ub.b1+(Bit16s)src.ub.b1);
++		dest->ub.b2 = SaturateWordSToByteU((Bit16s)dest->ub.b2+(Bit16s)src.ub.b2);
++		dest->ub.b3 = SaturateWordSToByteU((Bit16s)dest->ub.b3+(Bit16s)src.ub.b3);
++		dest->ub.b4 = SaturateWordSToByteU((Bit16s)dest->ub.b4+(Bit16s)src.ub.b4);
++		dest->ub.b5 = SaturateWordSToByteU((Bit16s)dest->ub.b5+(Bit16s)src.ub.b5);
++		dest->ub.b6 = SaturateWordSToByteU((Bit16s)dest->ub.b6+(Bit16s)src.ub.b6);
++		dest->ub.b7 = SaturateWordSToByteU((Bit16s)dest->ub.b7+(Bit16s)src.ub.b7);
++		break;
++	}
++	CASE_0F_MMX(0xDD)												/* PADDUSW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w0 = SaturateDwordSToWordU((Bit32s)dest->uw.w0+(Bit32s)src.uw.w0);
++		dest->uw.w1 = SaturateDwordSToWordU((Bit32s)dest->uw.w1+(Bit32s)src.uw.w1);
++		dest->uw.w2 = SaturateDwordSToWordU((Bit32s)dest->uw.w2+(Bit32s)src.uw.w2);
++		dest->uw.w3 = SaturateDwordSToWordU((Bit32s)dest->uw.w3+(Bit32s)src.uw.w3);
++		break;
++	}
++	CASE_0F_MMX(0xF8)												/* PSUBB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 -= src.ub.b0;
++		dest->ub.b1 -= src.ub.b1;
++		dest->ub.b2 -= src.ub.b2;
++		dest->ub.b3 -= src.ub.b3;
++		dest->ub.b4 -= src.ub.b4;
++		dest->ub.b5 -= src.ub.b5;
++		dest->ub.b6 -= src.ub.b6;
++		dest->ub.b7 -= src.ub.b7;
++		break;
++	}
++	CASE_0F_MMX(0xF9)												/* PSUBW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w0 -= src.uw.w0;
++		dest->uw.w1 -= src.uw.w1;
++		dest->uw.w2 -= src.uw.w2;
++		dest->uw.w3 -= src.uw.w3;
++		break;
++	}
++	CASE_0F_MMX(0xFA)												/* PSUBD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ud.d0 -= src.ud.d0;
++		dest->ud.d1 -= src.ud.d1;
++		break;
++	}
++	CASE_0F_MMX(0xE8)												/* PSUBSB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->sb.b0 = SaturateWordSToByteS((Bit16s)dest->sb.b0-(Bit16s)src.sb.b0);
++		dest->sb.b1 = SaturateWordSToByteS((Bit16s)dest->sb.b1-(Bit16s)src.sb.b1);
++		dest->sb.b2 = SaturateWordSToByteS((Bit16s)dest->sb.b2-(Bit16s)src.sb.b2);
++		dest->sb.b3 = SaturateWordSToByteS((Bit16s)dest->sb.b3-(Bit16s)src.sb.b3);
++		dest->sb.b4 = SaturateWordSToByteS((Bit16s)dest->sb.b4-(Bit16s)src.sb.b4);
++		dest->sb.b5 = SaturateWordSToByteS((Bit16s)dest->sb.b5-(Bit16s)src.sb.b5);
++		dest->sb.b6 = SaturateWordSToByteS((Bit16s)dest->sb.b6-(Bit16s)src.sb.b6);
++		dest->sb.b7 = SaturateWordSToByteS((Bit16s)dest->sb.b7-(Bit16s)src.sb.b7);
++		break;
++	}
++	CASE_0F_MMX(0xE9)												/* PSUBSW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->sw.w0 = SaturateDwordSToWordS((Bit32s)dest->sw.w0-(Bit32s)src.sw.w0);
++		dest->sw.w1 = SaturateDwordSToWordS((Bit32s)dest->sw.w1-(Bit32s)src.sw.w1);
++		dest->sw.w2 = SaturateDwordSToWordS((Bit32s)dest->sw.w2-(Bit32s)src.sw.w2);
++		dest->sw.w3 = SaturateDwordSToWordS((Bit32s)dest->sw.w3-(Bit32s)src.sw.w3);
++		break;
++	}
++	CASE_0F_MMX(0xD8)												/* PSUBUSB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		MMX_reg result;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		result.q = 0;
++		if (dest->ub.b0>src.ub.b0) result.ub.b0 = dest->ub.b0 - src.ub.b0;
++		if (dest->ub.b1>src.ub.b1) result.ub.b1 = dest->ub.b1 - src.ub.b1;
++		if (dest->ub.b2>src.ub.b2) result.ub.b2 = dest->ub.b2 - src.ub.b2;
++		if (dest->ub.b3>src.ub.b3) result.ub.b3 = dest->ub.b3 - src.ub.b3;
++		if (dest->ub.b4>src.ub.b4) result.ub.b4 = dest->ub.b4 - src.ub.b4;
++		if (dest->ub.b5>src.ub.b5) result.ub.b5 = dest->ub.b5 - src.ub.b5;
++		if (dest->ub.b6>src.ub.b6) result.ub.b6 = dest->ub.b6 - src.ub.b6;
++		if (dest->ub.b7>src.ub.b7) result.ub.b7 = dest->ub.b7 - src.ub.b7;
++		dest->q = result.q;
++		break;
++	}
++
++	CASE_0F_MMX(0xD9)												/* PSUBUSW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		MMX_reg result;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		result.q = 0;
++		if (dest->uw.w0>src.uw.w0) result.uw.w0 = dest->uw.w0 - src.uw.w0;
++		if (dest->uw.w1>src.uw.w1) result.uw.w1 = dest->uw.w1 - src.uw.w1;
++		if (dest->uw.w2>src.uw.w2) result.uw.w2 = dest->uw.w2 - src.uw.w2;
++		if (dest->uw.w3>src.uw.w3) result.uw.w3 = dest->uw.w3 - src.uw.w3;
++		dest->q = result.q;
++		break;
++	}
++	CASE_0F_MMX(0xE5)												/* PMULHW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		Bit32s product0 = (Bit32s)dest->sw.w0 * (Bit32s)src.sw.w0;
++		Bit32s product1 = (Bit32s)dest->sw.w1 * (Bit32s)src.sw.w1;
++		Bit32s product2 = (Bit32s)dest->sw.w2 * (Bit32s)src.sw.w2;
++		Bit32s product3 = (Bit32s)dest->sw.w3 * (Bit32s)src.sw.w3;
++		dest->uw.w0 = (Bit16u)(product0 >> 16);
++		dest->uw.w1 = (Bit16u)(product1 >> 16);
++		dest->uw.w2 = (Bit16u)(product2 >> 16);
++		dest->uw.w3 = (Bit16u)(product3 >> 16);
++		break;
++	}
++	CASE_0F_MMX(0xD5)												/* PMULLW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		Bit32u product0 = (Bit32u)dest->uw.w0 * (Bit32u)src.uw.w0;
++		Bit32u product1 = (Bit32u)dest->uw.w1 * (Bit32u)src.uw.w1;
++		Bit32u product2 = (Bit32u)dest->uw.w2 * (Bit32u)src.uw.w2;
++		Bit32u product3 = (Bit32u)dest->uw.w3 * (Bit32u)src.uw.w3;
++		dest->uw.w0 = (product0 & 0xffff);
++		dest->uw.w1 = (product1 & 0xffff);
++		dest->uw.w2 = (product2 & 0xffff);
++		dest->uw.w3 = (product3 & 0xffff);
++		break;
++	}
++	CASE_0F_MMX(0xF5)												/* PMADDWD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q = reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		if (dest->ud.d0 == 0x80008000 && src.ud.d0 == 0x80008000)
++			dest->ud.d0 = 0x80000000;
++		else {
++			Bit32s product0 = (Bit32s)dest->sw.w0 * (Bit32s)src.sw.w0;
++			Bit32s product1 = (Bit32s)dest->sw.w1 * (Bit32s)src.sw.w1;
++			dest->ud.d0 = product0 + product1;
++		}
++		if (dest->ud.d1 == 0x80008000 && src.ud.d1 == 0x80008000)
++			dest->ud.d1 = 0x80000000;
++		else {
++			Bit32s product2 = (Bit32s)dest->sw.w2 * (Bit32s)src.sw.w2;
++			Bit32s product3 = (Bit32s)dest->sw.w3 * (Bit32s)src.sw.w3;
++			dest->sd.d1 = product2 + product3;
++		}
++		break;
++	}
++
++/* Comparison */
++	CASE_0F_MMX(0x74)												/* PCMPEQB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 = dest->ub.b0==src.ub.b0?0xff:0;
++		dest->ub.b1 = dest->ub.b1==src.ub.b1?0xff:0;
++		dest->ub.b2 = dest->ub.b2==src.ub.b2?0xff:0;
++		dest->ub.b3 = dest->ub.b3==src.ub.b3?0xff:0;
++		dest->ub.b4 = dest->ub.b4==src.ub.b4?0xff:0;
++		dest->ub.b5 = dest->ub.b5==src.ub.b5?0xff:0;
++		dest->ub.b6 = dest->ub.b6==src.ub.b6?0xff:0;
++		dest->ub.b7 = dest->ub.b7==src.ub.b7?0xff:0;
++		break;
++	}
++	CASE_0F_MMX(0x75)												/* PCMPEQW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w0 = dest->uw.w0==src.uw.w0?0xffff:0;
++		dest->uw.w1 = dest->uw.w1==src.uw.w1?0xffff:0;
++		dest->uw.w2 = dest->uw.w2==src.uw.w2?0xffff:0;
++		dest->uw.w3 = dest->uw.w3==src.uw.w3?0xffff:0;
++		break;
++	}
++	CASE_0F_MMX(0x76)												/* PCMPEQD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ud.d0 = dest->ud.d0==src.ud.d0?0xffffffff:0;
++		dest->ud.d1 = dest->ud.d1==src.ud.d1?0xffffffff:0;
++		break;
++	}
++	CASE_0F_MMX(0x64)												/* PCMPGTB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 = dest->sb.b0>src.sb.b0?0xff:0;
++		dest->ub.b1 = dest->sb.b1>src.sb.b1?0xff:0;
++		dest->ub.b2 = dest->sb.b2>src.sb.b2?0xff:0;
++		dest->ub.b3 = dest->sb.b3>src.sb.b3?0xff:0;
++		dest->ub.b4 = dest->sb.b4>src.sb.b4?0xff:0;
++		dest->ub.b5 = dest->sb.b5>src.sb.b5?0xff:0;
++		dest->ub.b6 = dest->sb.b6>src.sb.b6?0xff:0;
++		dest->ub.b7 = dest->sb.b7>src.sb.b7?0xff:0;
++		break;
++	}
++	CASE_0F_MMX(0x65)												/* PCMPGTW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w0 = dest->sw.w0>src.sw.w0?0xffff:0;
++		dest->uw.w1 = dest->sw.w1>src.sw.w1?0xffff:0;
++		dest->uw.w2 = dest->sw.w2>src.sw.w2?0xffff:0;
++		dest->uw.w3 = dest->sw.w3>src.sw.w3?0xffff:0;
++		break;
++	}
++	CASE_0F_MMX(0x66)												/* PCMPGTD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ud.d0 = dest->sd.d0>src.sd.d0?0xffffffff:0;
++		dest->ud.d1 = dest->sd.d1>src.sd.d1?0xffffffff:0;
++		break;
++	}
++
++/* Data Packing */
++	CASE_0F_MMX(0x63)												/* PACKSSWB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->sb.b0 = SaturateWordSToByteS(dest->sw.w0);
++		dest->sb.b1 = SaturateWordSToByteS(dest->sw.w1);
++		dest->sb.b2 = SaturateWordSToByteS(dest->sw.w2);
++		dest->sb.b3 = SaturateWordSToByteS(dest->sw.w3);
++		dest->sb.b4 = SaturateWordSToByteS(src.sw.w0);
++		dest->sb.b5 = SaturateWordSToByteS(src.sw.w1);
++		dest->sb.b6 = SaturateWordSToByteS(src.sw.w2);
++		dest->sb.b7 = SaturateWordSToByteS(src.sw.w3);
++		break;
++	}
++	CASE_0F_MMX(0x6B)												/* PACKSSDW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->sw.w0 = SaturateDwordSToWordS(dest->sd.d0);
++		dest->sw.w1 = SaturateDwordSToWordS(dest->sd.d1);
++		dest->sw.w2 = SaturateDwordSToWordS(src.sd.d0);
++		dest->sw.w3 = SaturateDwordSToWordS(src.sd.d1);
++		break;
++	}
++	CASE_0F_MMX(0x67)												/* PACKUSWB Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 = SaturateWordSToByteU(dest->sw.w0);
++		dest->ub.b1 = SaturateWordSToByteU(dest->sw.w1);
++		dest->ub.b2 = SaturateWordSToByteU(dest->sw.w2);
++		dest->ub.b3 = SaturateWordSToByteU(dest->sw.w3);
++		dest->ub.b4 = SaturateWordSToByteU(src.sw.w0);
++		dest->ub.b5 = SaturateWordSToByteU(src.sw.w1);
++		dest->ub.b6 = SaturateWordSToByteU(src.sw.w2);
++		dest->ub.b7 = SaturateWordSToByteU(src.sw.w3);
++		break;
++	}
++	CASE_0F_MMX(0x68)												/* PUNPCKHBW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b0 = dest->ub.b4;
++		dest->ub.b1 = src.ub.b4;
++		dest->ub.b2 = dest->ub.b5;
++		dest->ub.b3 = src.ub.b5;
++		dest->ub.b4 = dest->ub.b6;
++		dest->ub.b5 = src.ub.b6;
++		dest->ub.b6 = dest->ub.b7;
++		dest->ub.b7 = src.ub.b7;
++		break;
++	}
++	CASE_0F_MMX(0x69)												/* PUNPCKHWD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w0 = dest->uw.w2;
++		dest->uw.w1 = src.uw.w2;
++		dest->uw.w2 = dest->uw.w3;
++		dest->uw.w3 = src.uw.w3;
++		break;
++	}
++	CASE_0F_MMX(0x6A)												/* PUNPCKHDQ Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ud.d0 = dest->ud.d1;
++		dest->ud.d1 = src.ud.d1;
++		break;
++	}
++	CASE_0F_MMX(0x60)												/* PUNPCKLBW Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ub.b7 = src.ub.b3;
++		dest->ub.b6 = dest->ub.b3;
++		dest->ub.b5 = src.ub.b2;
++		dest->ub.b4 = dest->ub.b2;
++		dest->ub.b3 = src.ub.b1;
++		dest->ub.b2 = dest->ub.b1;
++		dest->ub.b1 = src.ub.b0;
++		dest->ub.b0 = dest->ub.b0;
++		break;
++	}
++	CASE_0F_MMX(0x61)												/* PUNPCKLWD Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->uw.w3 = src.uw.w1;
++		dest->uw.w2 = dest->uw.w1;
++		dest->uw.w1 = src.uw.w0;
++		dest->uw.w0 = dest->uw.w0;
++		break;
++	}
++	CASE_0F_MMX(0x62)												/* PUNPCKLDQ Pq,Qq */
++	{
++		if (CPU_ArchitectureType<CPU_ARCHTYPE_PMMXSLOW) goto illegal_opcode;
++		GetRM;
++		MMX_reg* dest=lookupRMregMM[rm];
++		MMX_reg src;
++		if (rm>=0xc0) {
++			src.q=reg_mmx[rm&7]->q;
++		} else {
++			GetEAa;
++			src.q = LoadMq(eaa);
++		}
++		dest->ud.d1 = src.ud.d0;
++		break;
++	}
+diff -Nru ../dosbox-code-0/src/cpu/core_normal/prefix_66_0f.h ./src/cpu/core_normal/prefix_66_0f.h
+--- ../dosbox-code-0/src/cpu/core_normal/prefix_66_0f.h
++++ ./src/cpu/core_normal/prefix_66_0f.h
+@@ -467,3 +467,8 @@
+ 	CASE_0F_D(0xcf)												/* BSWAP EDI */
+ 		if (CPU_ArchitectureType<CPU_ARCHTYPE_486OLDSLOW) goto illegal_opcode;
+ 		BSWAPD(reg_edi);break;
++#if C_MMX
++#define CASE_0F_MMX(x) CASE_0F_D(x)
++#include "prefix_0f_mmx.h"
++#undef CASE_0F_MMX
++#endif
+\ No newline at end of file
+diff -Nru ../dosbox-code-0/src/cpu/core_normal.cpp ./src/cpu/core_normal.cpp
+--- ../dosbox-code-0/src/cpu/core_normal.cpp
++++ ./src/cpu/core_normal.cpp
+@@ -27,6 +27,7 @@
+ #include "pic.h"
+ #include "fpu.h"
+ #include "paging.h"
++#include "mmx.h"
+ 
+ #if C_DEBUG
+ #include "debug.h"
+@@ -36,17 +37,21 @@
+ #define LoadMb(off) mem_readb(off)
+ #define LoadMw(off) mem_readw(off)
+ #define LoadMd(off) mem_readd(off)
++#define LoadMq(off) ((Bit64u)((Bit64u)mem_readd(off+4)<<32 | (Bit64u)mem_readd(off)))
+ #define SaveMb(off,val)	mem_writeb(off,val)
+ #define SaveMw(off,val)	mem_writew(off,val)
+ #define SaveMd(off,val)	mem_writed(off,val)
++#define SaveMq(off,val) {mem_writed(off,val&0xffffffff);mem_writed(off+4,(val>>32)&0xffffffff);}
+ #else 
+ #include "paging.h"
+ #define LoadMb(off) mem_readb_inline(off)
+ #define LoadMw(off) mem_readw_inline(off)
+ #define LoadMd(off) mem_readd_inline(off)
++#define LoadMq(off) ((Bit64u)((Bit64u)mem_readd_inline(off+4)<<32 | (Bit64u)mem_readd_inline(off)))
+ #define SaveMb(off,val)	mem_writeb_inline(off,val)
+ #define SaveMw(off,val)	mem_writew_inline(off,val)
+ #define SaveMd(off,val)	mem_writed_inline(off,val)
++#define SaveMq(off,val) {mem_writed_inline(off,val&0xffffffff);mem_writed_inline(off+4,(val>>32)&0xffffffff);}
+ #endif
+ 
+ extern Bitu cycle_count;
+diff -Nru ../dosbox-code-0/src/cpu/core_prefetch.cpp ./src/cpu/core_prefetch.cpp
+--- ../dosbox-code-0/src/cpu/core_prefetch.cpp
++++ ./src/cpu/core_prefetch.cpp
+@@ -28,6 +28,7 @@
+ #include "pic.h"
+ #include "fpu.h"
+ #include "paging.h"
++#include "mmx.h"
+ 
+ #if C_DEBUG
+ #include "debug.h"
+@@ -37,17 +38,21 @@
+ #define LoadMb(off) mem_readb(off)
+ #define LoadMw(off) mem_readw(off)
+ #define LoadMd(off) mem_readd(off)
++#define LoadMq(off) ((Bit64u)((Bit64u)mem_readd(off+4)<<32 | (Bit64u)mem_readd(off)))
+ #define SaveMb(off,val)	mem_writeb(off,val)
+ #define SaveMw(off,val)	mem_writew(off,val)
+ #define SaveMd(off,val)	mem_writed(off,val)
++#define SaveMq(off,val) {mem_writed(off,val&0xffffffff);mem_writed(off+4,(val>>32)&0xffffffff);}
+ #else 
+ #include "paging.h"
+ #define LoadMb(off) mem_readb_inline(off)
+ #define LoadMw(off) mem_readw_inline(off)
+ #define LoadMd(off) mem_readd_inline(off)
++#define LoadMq(off) ((Bit64u)((Bit64u)mem_readd_inline(off+4)<<32 | (Bit64u)mem_readd_inline(off)))
+ #define SaveMb(off,val)	mem_writeb_inline(off,val)
+ #define SaveMw(off,val)	mem_writew_inline(off,val)
+ #define SaveMd(off,val)	mem_writed_inline(off,val)
++#define SaveMq(off,val) {mem_writed_inline(off,val&0xffffffff);mem_writed_inline(off+4,(val>>32)&0xffffffff);}
+ #endif
+ 
+ extern Bitu cycle_count;
+diff -Nru ../dosbox-code-0/src/cpu/core_simple.cpp ./src/cpu/core_simple.cpp
+--- ../dosbox-code-0/src/cpu/core_simple.cpp
++++ ./src/cpu/core_simple.cpp
+@@ -26,6 +26,7 @@
+ #include "callback.h"
+ #include "pic.h"
+ #include "fpu.h"
++#include "mmx.h"
+ 
+ #if C_DEBUG
+ #include "debug.h"
+@@ -36,10 +37,12 @@
+ #define LoadMb(off) mem_readb(off)
+ #define LoadMw(off) mem_readw(off)
+ #define LoadMd(off) mem_readd(off)
++#define LoadMq(off) ((Bit64u)((Bit64u)mem_readd(off+4)<<32 | (Bit64u)mem_readd(off)))
+ 
+ #define SaveMb(off,val)	mem_writeb(off,val)
+ #define SaveMw(off,val)	mem_writew(off,val)
+ #define SaveMd(off,val)	mem_writed(off,val)
++#define SaveMq(off,val) {mem_writed(off,val&0xffffffff);mem_writed(off+4,(val>>32)&0xffffffff);}
+ 
+ extern Bitu cycle_count;
+ 
+diff -Nru ../dosbox-code-0/src/cpu/cpu.cpp ./src/cpu/cpu.cpp
+--- ../dosbox-code-0/src/cpu/cpu.cpp
++++ ./src/cpu/cpu.cpp
+@@ -2023,6 +2023,13 @@
+ 			reg_ebx=0;			/* Not Supported */
+ 			reg_ecx=0;			/* No features */
+ 			reg_edx=0x00000011;	/* FPU+TimeStamp/RDTSC */
++#if C_MMX
++		} else if (CPU_ArchitectureType==CPU_ARCHTYPE_PMMXSLOW) {
++			reg_eax=0x543;		/* intel pentium mmx (PMMX) */
++			reg_ebx=0;			/* Not Supported */
++			reg_ecx=0;			/* No features */
++			reg_edx=0x00800011;	/* FPU+TimeStamp/RDTSC+MMX */
++#endif
+ 		} else {
+ 			return false;
+ 		}
+@@ -2205,7 +2212,7 @@
+ 			cpu.drx[i]=0;
+ 			cpu.trx[i]=0;
+ 		}
+-		if (CPU_ArchitectureType==CPU_ARCHTYPE_PENTIUMSLOW) {
++		if (CPU_ArchitectureType>=CPU_ARCHTYPE_PENTIUMSLOW) {
+ 			cpu.drx[6]=0xffff0ff0;
+ 		} else {
+ 			cpu.drx[6]=0xffff1ff0;
+@@ -2382,6 +2389,8 @@
+ 			}
+ 		} else if (cputype == "pentium_slow") {
+ 			CPU_ArchitectureType = CPU_ARCHTYPE_PENTIUMSLOW;
++		} else if (cputype == "pentium_mmx_slow") {
++			CPU_ArchitectureType = CPU_ARCHTYPE_PMMXSLOW;
+ 		}
+ 
+ 		if (CPU_ArchitectureType>=CPU_ARCHTYPE_486NEWSLOW) CPU_extflags_toggle=(FLAG_ID|FLAG_AC);
+diff -Nru ../dosbox-code-0/src/cpu/mmx.cpp ./src/cpu/mmx.cpp
+--- ../dosbox-code-0/src/cpu/mmx.cpp
++++ ./src/cpu/mmx.cpp
+@@ -0,0 +1,119 @@
++/*
++ *  Copyright (C) 2002-2021  The DOSBox Team
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++
++#include "dosbox.h"
++
++#include "mem.h"
++#include "mmx.h"
++#include "cpu.h"
++#include "fpu.h"
++
++MMX_reg *reg_mmx[8] = {
++	&fpu.p_regs[0].reg_mmx,
++	&fpu.p_regs[1].reg_mmx,
++	&fpu.p_regs[2].reg_mmx,
++	&fpu.p_regs[3].reg_mmx,
++	&fpu.p_regs[4].reg_mmx,
++	&fpu.p_regs[5].reg_mmx,
++	&fpu.p_regs[6].reg_mmx,
++	&fpu.p_regs[7].reg_mmx,
++};
++
++
++MMX_reg * lookupRMregMM[256]={
++	reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],
++	reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],
++	reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],
++	reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],
++	reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],
++	reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],
++	reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],
++	reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],
++
++	reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],
++	reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],
++	reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],
++	reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],
++	reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],
++	reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],
++	reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],
++	reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],
++
++	reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],
++	reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],
++	reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],
++	reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],
++	reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],
++	reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],
++	reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],
++	reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],
++
++	reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],reg_mmx[0],
++	reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],reg_mmx[1],
++	reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],reg_mmx[2],
++	reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],reg_mmx[3],
++	reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],reg_mmx[4],
++	reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],reg_mmx[5],
++	reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],reg_mmx[6],
++	reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],reg_mmx[7],
++};
++
++
++Bit8s SaturateWordSToByteS(Bit16s value)
++{
++  if(value < -128) return -128;
++  if(value >  127) return  127;
++  return (Bit8s) value;
++}
++
++Bit16s SaturateDwordSToWordS(Bit32s value)
++{
++  if(value < -32768) return -32768;
++  if(value >  32767) return  32767;
++  return (Bit16s) value;
++}
++
++Bit8u SaturateWordSToByteU(Bit16s value)
++{
++  if(value < 0) return 0;
++  if(value > 255) return 255;
++  return (Bit8u) value;
++}
++
++Bit16u SaturateDwordSToWordU(Bit32s value)
++{
++  if(value < 0) return 0;
++  if(value > 65535) return 65535;
++  return (Bit16u) value;
++}
++
++void setFPUTagEmpty() {
++	FPU_SetCW(0x37F);
++	fpu.sw = 0;
++	TOP = FPU_GET_TOP();
++	fpu.tags[0] = TAG_Empty;
++	fpu.tags[1] = TAG_Empty;
++	fpu.tags[2] = TAG_Empty;
++	fpu.tags[3] = TAG_Empty;
++	fpu.tags[4] = TAG_Empty;
++	fpu.tags[5] = TAG_Empty;
++	fpu.tags[6] = TAG_Empty;
++	fpu.tags[7] = TAG_Empty;
++	fpu.tags[8] = TAG_Valid; // is only used by us
++}
+\ No newline at end of file
+diff -Nru ../dosbox-code-0/src/cpu/paging.cpp ./src/cpu/paging.cpp
+--- ../dosbox-code-0/src/cpu/paging.cpp
++++ ./src/cpu/paging.cpp
+@@ -241,6 +241,7 @@
+ 	case CPU_ARCHTYPE_486OLDSLOW:
+ 	case CPU_ARCHTYPE_486NEWSLOW:
+ 	case CPU_ARCHTYPE_PENTIUMSLOW:
++	case CPU_ARCHTYPE_PMMXSLOW:
+ 		return ((u1)==0) || ((u2)==0);
+ 	}
+ }
+@@ -346,6 +347,7 @@
+ 					case CPU_ARCHTYPE_486OLDSLOW:
+ 					case CPU_ARCHTYPE_486NEWSLOW:
+ 					case CPU_ARCHTYPE_PENTIUMSLOW:
++					case CPU_ARCHTYPE_PMMXSLOW:
+ 						priv_check=1;
+ 						break;
+ 					}
+@@ -364,6 +366,7 @@
+ 					case CPU_ARCHTYPE_486OLDSLOW:
+ 					case CPU_ARCHTYPE_486NEWSLOW:
+ 					case CPU_ARCHTYPE_PENTIUMSLOW:
++					case CPU_ARCHTYPE_PMMXSLOW:
+ 						priv_check=2;
+ 						break;
+ 					}
+diff -Nru ../dosbox-code-0/src/dosbox.cpp ./src/dosbox.cpp
+--- ../dosbox-code-0/src/dosbox.cpp
++++ ./src/dosbox.cpp
+@@ -494,7 +494,11 @@
+ 	Pstring->Set_help("CPU Core used in emulation. auto will switch to dynamic if available and\n"
+ 		"appropriate.");
+ 
+-	const char* cputype_values[] = { "auto", "386", "386_slow", "486_slow", "pentium_slow", "386_prefetch", 0};
++	const char* cputype_values[] = { "auto", "386", "386_slow", "486_slow", "pentium_slow", 
++#if C_MMX
++		"pentium_mmx_slow",
++#endif
++		"386_prefetch", 0};
+ 	Pstring = secprop->Add_string("cputype",Property::Changeable::Always,"auto");
+ 	Pstring->Set_values(cputype_values);
+ 	Pstring->Set_help("CPU Type used in emulation. auto is the fastest choice.");
