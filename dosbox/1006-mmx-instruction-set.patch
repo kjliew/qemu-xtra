@@ -1,3 +1,23 @@
+diff -Nru ../dosbox-code-0/configure.ac ./configure.ac
+--- ../dosbox-code-0/configure.ac
++++ ./configure.ac
+@@ -171,6 +171,16 @@
+ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[
+ int x=10;if( __builtin_expect ((x==1),0) ) ;
+ ]])], [ AC_MSG_RESULT(yes);AC_DEFINE(C_HAS_BUILTIN_EXPECT)],AC_MSG_RESULT(no))
++#Check if ISO C++ allows -Wregister as warning
++AC_MSG_CHECKING(if ISO C++ allows -Wregister as warning)
++AC_COMPILE_IFELSE([AC_LANG_SOURCE([
++void blah(){
++register int a = 0;
++}
++])],[
++AC_MSG_RESULT([yes])
++],[AC_MSG_RESULT([no])
++CXXFLAGS="$CXXFLAGS -Wno-register"])
+ #switch language back
+ AC_LANG_POP(C++)
+
 diff -Nru ../dosbox-code-0/acinclude.m4 ./acinclude.m4
 --- ../dosbox-code-0/acinclude.m4
 +++ ./acinclude.m4

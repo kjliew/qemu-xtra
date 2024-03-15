@@ -37,6 +37,7 @@ static struct
 
 static BOOL ramp_stored  = false;
 static BOOL mode_changed = false;
+static int tainted_cursor;
 
 #define DPRINTF(fmt, ...)
 static LONG WINAPI GlideWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -149,8 +150,15 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     DISPLAY_DEVICE dd = { .cb = sizeof(DISPLAY_DEVICE) };
     const char vidstr[] = "QEMU Bochs";
     if (EnumDisplayDevices(NULL, 0, &dd, 0) &&
-        !memcmp(dd.DeviceString, vidstr, strlen(vidstr)))
+        !memcmp(dd.DeviceString, vidstr, strlen(vidstr))) {
+        CURSORINFO ci = { .cbSize = sizeof(CURSORINFO) };
+        if (GetCursorInfo(&ci) && ci.flags == CURSOR_SHOWING) {
+            tainted_cursor = 1;
+            while (ShowCursor(FALSE) >= 0)
+                tainted_cursor++;
+        }
         UserConfig.QEmu = UserConfig.InitFullScreen = true;
+    }
 #endif
 
     if ( UserConfig.InitFullScreen )
@@ -342,6 +350,8 @@ void FinaliseOpenGLWindow( void)
     {
         ResetScreenMode( );
     }
+    for (; tainted_cursor; tainted_cursor--)
+        ShowCursor(TRUE);
 }
 
 void SetGamma(float value)
