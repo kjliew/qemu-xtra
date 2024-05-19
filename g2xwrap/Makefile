@@ -1,11 +1,11 @@
-CFLAGS=-I../build -I../openglide -I. -Werror -msse2 -Os -flto -fomit-frame-pointer
+CFLAGS=-I../build -I../openglide -I. -Werror -march=x86-64-v2 -mtune=generic -Os -flto -fomit-frame-pointer
 LDFLAGS=-Wl,--disable-auto-image-base -Wl,--dynamicbase -Wl,--nxcompat
 LIBS=-L. -lglide2x.dll
 TARGET3=glide3x.dll
 TARGET1=glide.dll
-PEXPORTS=pexports
+GENDEF=gendef
 
-.PHONY: sanity clean
+.PHONY: sanity distclean clean
 
 all: sanity $(TARGET3) $(TARGET1)
 	@echo "  CFLAGS   $(CFLAGS)"
@@ -13,7 +13,8 @@ all: sanity $(TARGET3) $(TARGET1)
 
 sanity:
 	@if [ "$$MSYSTEM" != "MINGW32" ]; then echo "Error: MSYSTEM == $$MSYSTEM"; exit 1; fi
-	$(PEXPORTS) ../build/.libs/libglide2x.dll | sed "s/^_//" > /tmp/dll.def
+	$(GENDEF) - ../build/.libs/libglide2x.dll | \
+		sed "s/\(@[0-9]*\)@[0-9]*/\1/;s/\;\ Check.*//;s/^_//" > /tmp/dll.def
 	dlltool -U -d /tmp/dll.def -l libglide2x.dll.a
 
 $(TARGET3): gl301wrp.def wr301dll.cpp
@@ -25,4 +26,7 @@ $(TARGET1): gl211wrp.def wr211dll.cpp
 	@g++ -static -mdll $(CFLAGS) -s -o $@ $^ $(LDFLAGS) $(LIBS)
 
 clean:
-	@rm -f $(TARGET1) $(TARGET3) *.a
+	@rm -f *.a /tmp/dll.def
+
+distclean: clean
+	@rm -f $(TARGET1) $(TARGET3)
