@@ -274,6 +274,7 @@ grSstWinOpen(   FxU hwnd,
         return FXFALSE;
     }
 
+    InternalConfig.Resolution = UserConfig.Resolution;
     // Set the size of the OpenGL window (might be different from Glide window size)
     if ((UserConfig.Resolution > 16) &&
         (Glide.WindowWidth >= UserConfig.Resolution))
@@ -450,6 +451,8 @@ grSstWinClose( void )
         return;
     }
 
+    UserConfig.Resolution = InternalConfig.Resolution;
+    OpenGL.WindowOffset = 0;
     OpenGL.WinOpen = false;
 
     annotate_last();
