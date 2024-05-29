@@ -253,13 +253,15 @@ grLfbUnlock( GrLock_t dwType, GrBuffer_t dwBuffer )
                     case GR_LFBWRITEMODE_555_DEPTH:
                     case GR_LFBWRITEMODE_1555:
                     case GR_LFBWRITEMODE_555:
-                        OpenGL.tmpBuf[ jj ] = 0x00  |                       // A
+                        OpenGL.tmpBuf[ jj ] =
                         ( Glide.DstBuffer.Address[ ii ] & 0x001F ) << 19 |  // B
                         ( Glide.DstBuffer.Address[ ii ] & 0x001C ) << 14 |
                         ( Glide.DstBuffer.Address[ ii ] & 0x03E0 ) << 6  |  // G
                         ( Glide.DstBuffer.Address[ ii ] & 0x0380 ) << 1  |
                         ( Glide.DstBuffer.Address[ ii ] & 0x7C00 ) >> 7  |  // R
                         ( Glide.DstBuffer.Address[ ii ] & 0x7000 ) >> 12;
+                        OpenGL.tmpBuf[ jj ] |= ( Glide.DstBuffer.Address[ ii ] & 0x8000 )?
+                            0:0xFF000000;                                   // A
                         break;
                     case GR_LFBWRITEMODE_565_DEPTH:
                     case GR_LFBWRITEMODE_565:
