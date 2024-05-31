@@ -949,6 +949,8 @@ BOOL APIENTRY DllMain( HINSTANCE hModule,
         case DLL_THREAD_DETACH:
             break;
         case DLL_PROCESS_ATTACH:
+            DPRINTF("Attached - glide3x.dll " __DATE__ " " __TIME__);
+            DisableThreadLibraryCalls(hModule);
             break;
         case DLL_PROCESS_DETACH:
             break;
