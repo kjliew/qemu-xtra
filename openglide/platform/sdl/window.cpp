@@ -24,7 +24,7 @@
     x = dlopen(dllname, RTLD_LAZY) ; \
     if (!x) { \
         const char *local_lib; \
-        char local_path[] = "/usr/local/lib/libSDL2.soname"; \
+        char local_path[] = "/usr/local/lib/libSDL2.sonamexyz"; \
         local_path[strlen("/usr/local/lib/")] = '\x0'; \
         local_lib = strcat(local_path, dllname); \
         x = dlopen(local_lib, RTLD_LAZY); \
@@ -82,7 +82,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 #if defined(__darwin__)
         "libSDL2.dylib"
 #elif defined(__linux__)
-        "libSDL2.so"
+        "libSDL2-2.0.so.0"
 #else /* WIN32 */
         "SDL2.dll"
 #endif
