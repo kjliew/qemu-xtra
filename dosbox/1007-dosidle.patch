@@ -1,55 +1,86 @@
-diff -ru ../dosbox-code-0/include/callback.h ./include/callback.h
---- ../dosbox-code-0/include/callback.h
-+++ ./include/callback.h
-@@ -30,7 +30,7 @@
- enum { CB_RETN,CB_RETF,CB_RETF8,CB_RETF_STI,CB_RETF_CLI,
- 		CB_IRET,CB_IRETD,CB_IRET_STI,CB_IRET_EOI_PIC1,
- 		CB_IRQ0,CB_IRQ1,CB_IRQ9,CB_IRQ12,CB_IRQ12_RET,CB_IRQ6_PCJR,CB_MOUSE,
--		CB_INT29,CB_INT16,CB_HOOKABLE,CB_TDE_IRET,CB_IPXESR,CB_IPXESR_RET,
-+		CB_INT28,CB_INT29,CB_INT16,CB_HOOKABLE,CB_TDE_IRET,CB_IPXESR,CB_IPXESR_RET,
- 		CB_INT21,CB_INT13,CB_VESA_WAIT,CB_VESA_PM };
- 
- #define CB_MAX		128
 diff -ru ../dosbox-code-0/src/cpu/callback.cpp ./src/cpu/callback.cpp
 --- ../dosbox-code-0/src/cpu/callback.cpp
 +++ ./src/cpu/callback.cpp
-@@ -382,6 +382,11 @@
- 		for (Bitu i=0;i<=0x0b;i++) phys_writeb(physAddress+0x02+i,0x90);
+@@ -379,7 +379,8 @@
+ 			physAddress+=4;
+ 		}
+ 		phys_writeb(physAddress+0x01,(Bit8u)0xCF);		//An IRET Instruction
+-		for (Bitu i=0;i<=0x0b;i++) phys_writeb(physAddress+0x02+i,0x90);
++		for (Bitu i=0;i<=0x0a;i++) phys_writeb(physAddress+0x02+i,0x90);
++		phys_writeb(physAddress+0x0d,(Bit8u)0xF4);	//HLT
  		phys_writew(physAddress+0x0e,(Bit16u)0xedeb);	//jmp callback
  		return (use_cb?0x10:0x0c);
-+	case CB_INT28:	// DOS idle
-+		phys_writeb(physAddress+0x00,(Bit8u)0xFB);		// STI
-+		phys_writeb(physAddress+0x01,(Bit8u)0xF4);		// HLT
-+		phys_writeb(physAddress+0x02,(Bit8u)0xcf);		// An IRET Instruction
-+		return (0x04);
  	case CB_INT29:	// fast console output
- 		if (use_cb) {
- 			phys_writeb(physAddress+0x00,(Bit8u)0xFE);	//GRP 4
-diff -ru ../dosbox-code-0/src/dos/dev_con.h ./src/dos/dev_con.h
---- ../dosbox-code-0/src/dos/dev_con.h
-+++ ./src/dos/dev_con.h
-@@ -60,6 +60,12 @@
- 		readcache=0;
- 	}
- 	while (*size>count) {
-+		while (true) {
-+			reg_ah=0x1; // check for keystroke
-+			CALLBACK_RunRealInt(0x16);
-+			if (!GETFLAG(ZF)) break;
-+			CALLBACK_RunRealInt(0x28);
-+		};
- 		reg_ah=(IS_EGAVGA_ARCH)?0x10:0x0;
- 		CALLBACK_RunRealInt(0x16);
- 		switch(reg_al) {
-diff -ru ../dosbox-code-0/src/dos/dos.cpp ./src/dos/dos.cpp
---- ../dosbox-code-0/src/dos/dos.cpp
-+++ ./src/dos/dos.cpp
-@@ -1296,7 +1296,7 @@
- 		callback[4].Install(DOS_27Handler,CB_IRET,"DOS Int 27");
- 		callback[4].Set_RealVec(0x27);
+@@ -635,7 +636,8 @@
+ 	call_idle=CALLBACK_Allocate();
+ 	CallBack_Handlers[call_idle]=stop_handler;
+ 	CALLBACK_SetDescription(call_idle,"idle");
+-	for (i=0;i<=11;i++) phys_writeb(CALLBACK_PhysPointer(call_idle)+i,0x90);
++	for (i=0;i<=9;i++) phys_writeb(CALLBACK_PhysPointer(call_idle)+i,0x90);
++	phys_writew(CALLBACK_PhysPointer(call_idle)+10,0xF4FB);
+ 	phys_writeb(CALLBACK_PhysPointer(call_idle)+12,0xFE);
+ 	phys_writeb(CALLBACK_PhysPointer(call_idle)+13,0x38);
+ 	phys_writew(CALLBACK_PhysPointer(call_idle)+14,(Bit16u)call_idle);
+diff -ru ../dosbox-code-0/src/cpu/core_dyn_x86/string.h ./src/cpu/core_dyn_x86/string.h
+--- ../dosbox-code-0/src/cpu/core_dyn_x86/string.h
++++ ./src/cpu/core_dyn_x86/string.h
+@@ -16,7 +16,7 @@
+  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+  */
  
--		callback[5].Install(NULL,CB_IRET,"DOS Int 28");
-+		callback[5].Install(NULL,CB_INT28,"DOS idle");
- 		callback[5].Set_RealVec(0x28);
+-enum STRING_OP {
++enum STRING_OP_DYN_X86 {
+ 	STR_OUTSB=0,STR_OUTSW,STR_OUTSD,
+ 	STR_INSB=4,STR_INSW,STR_INSD,
+ 	STR_MOVSB=8,STR_MOVSW,STR_MOVSD,
+@@ -26,7 +26,7 @@
+ 	STR_CMPSB=24,STR_CMPSW,STR_CMPSD
+ };
  
- 		callback[6].Install(NULL,CB_INT29,"CON Output Int 29");
+-static void dyn_string(STRING_OP op) {
++static void dyn_string(STRING_OP_DYN_X86 op) {
+ 	DynReg * si_base=decode.segprefix ? decode.segprefix : DREG(DS);
+ 	DynReg * di_base=DREG(ES);
+ 	DynReg * tmp_reg;bool usesi;bool usedi;
+diff -ru ../dosbox-code-0/src/cpu/core_normal/string.h ./src/cpu/core_normal/string.h
+--- ../dosbox-code-0/src/cpu/core_normal/string.h
++++ ./src/cpu/core_normal/string.h
+@@ -16,7 +16,7 @@
+  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+  */
+ 
+-enum STRING_OP {
++enum STRING_OP_NORMAL {
+ 	R_OUTSB,R_OUTSW,R_OUTSD,
+ 	R_INSB,R_INSW,R_INSD,
+ 	R_MOVSB,R_MOVSW,R_MOVSD,
+@@ -28,7 +28,7 @@
+ 
+ #define LoadD(_BLAH) _BLAH
+ 
+-static void DoString(STRING_OP type) {
++static void DoString(STRING_OP_NORMAL type) {
+ 	PhysPt  si_base,di_base;
+ 	Bitu	si_index,di_index;
+ 	Bitu	add_mask;
+diff -ru ../dosbox-code-0/src/ints/bios_keyboard.cpp ./src/ints/bios_keyboard.cpp
+--- ../dosbox-code-0/src/ints/bios_keyboard.cpp
++++ ./src/ints/bios_keyboard.cpp
+@@ -539,8 +539,8 @@
+ 				/* no key available, return key at buffer head anyway */
+ 				break;
+ 			}
+-//			CALLBACK_Idle();
+ 		}
++                CALLBACK_Idle();
+ 		reg_ax=temp;
+ 		break;
+ 	case 0x11: /* CHECK FOR KEYSTROKE (enhanced keyboards only) */
+@@ -552,6 +552,7 @@
+ 				temp&=0xff00;
+ 			}
+ 		}
++                CALLBACK_Idle();
+ 		reg_ax=temp;
+ 		break;
+ 	case 0x02:	/* GET SHIFT FLAGS */
