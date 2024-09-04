@@ -66,21 +66,57 @@ diff -ru ../dosbox-code-0/src/cpu/core_normal/string.h ./src/cpu/core_normal/str
 diff -ru ../dosbox-code-0/src/ints/bios_keyboard.cpp ./src/ints/bios_keyboard.cpp
 --- ../dosbox-code-0/src/ints/bios_keyboard.cpp
 +++ ./src/ints/bios_keyboard.cpp
-@@ -539,8 +539,8 @@
+@@ -527,9 +527,11 @@
+ 		// enable interrupt-flag after IRET of this int16
+ 		CALLBACK_SIF(true);
+ 		for (;;) {
++                        static Bit32u elapsed;
+ 			if (check_key(temp)) { //  check_key changes ZF and CF as required
+ 				if (!IsEnhancedKey(temp)) {
+ 					/* normal key, return translated key in ax */
++                                        elapsed = SDL_GetTicks();
+ 					break;
+ 				} else {
+ 					/* remove enhanced key from buffer and ignore it */
+@@ -537,21 +539,34 @@
+ 				}
+ 			} else {
  				/* no key available, return key at buffer head anyway */
++                                if ((SDL_GetTicks() - elapsed) > 20) {
++                                    elapsed = 0;
++                                    CALLBACK_Idle();
++                                }
  				break;
  			}
 -//			CALLBACK_Idle();
  		}
-+                CALLBACK_Idle();
  		reg_ax=temp;
  		break;
  	case 0x11: /* CHECK FOR KEYSTROKE (enhanced keyboards only) */
-@@ -552,6 +552,7 @@
- 				temp&=0xff00;
- 			}
- 		}
-+                CALLBACK_Idle();
+ 		// enable interrupt-flag after IRET of this int16
+ 		CALLBACK_SIF(true);
+-		if (check_key(temp)) { // check_key changes ZF and CF as required
+-			if (((temp&0xff)==0xf0) && (temp>>8)) {
+-				/* special enhanced key, clear low part before returning key */
+-				temp&=0xff00;
+-			}
+-		}
++                do {
++                    static Bit32u elapsed;
++                    if (check_key(temp)) { // check_key changes ZF and CF as required
++                            elapsed = SDL_GetTicks();
++                            if (((temp&0xff)==0xf0) && (temp>>8)) {
++                                    /* special enhanced key, clear low part before returning key */
++                                    temp&=0xff00;
++                            }
++                    }
++                    else {
++                        if ((SDL_GetTicks() - elapsed) > 20) {
++                            elapsed = 0;
++                            CALLBACK_Idle();
++                        }
++                    }
++                } while(0);
  		reg_ax=temp;
  		break;
  	case 0x02:	/* GET SHIFT FLAGS */
