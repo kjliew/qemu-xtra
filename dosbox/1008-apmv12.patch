@@ -1,0 +1,75 @@
+diff -ru ../dosbox-code-0/src/cpu/callback.cpp ./src/cpu/callback.cpp
+--- ../dosbox-code-0/src/cpu/callback.cpp
++++ ./src/cpu/callback.cpp
+@@ -34,6 +34,8 @@
+ char* CallBack_Description[CB_MAX];
+ 
+ static Bitu call_stop,call_idle,call_default;
++extern Bitu handle_apm(void);
++Bitu entry_apm16, entry_apm32;
+ Bitu call_priv_io;
+ 
+ static Bitu illegal_handler(void) {
+@@ -641,6 +643,36 @@
+ 	phys_writeb(CALLBACK_PhysPointer(call_idle)+12,0xFE);
+ 	phys_writeb(CALLBACK_PhysPointer(call_idle)+13,0x38);
+ 	phys_writew(CALLBACK_PhysPointer(call_idle)+14,(Bit16u)call_idle);
++
++        /* Setup APM 16-bit entry */
++        entry_apm16=CALLBACK_Allocate();
++        CallBack_Handlers[entry_apm16]=handle_apm;
++        CALLBACK_SetDescription(entry_apm16,"apm16");
++        phys_writeb(CALLBACK_PhysPointer(entry_apm16)+0x0,0x9c);   // pushf
++        phys_writew(CALLBACK_PhysPointer(entry_apm16)+0x1,0x5066); // push eax
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x3,0xfcfa); // cli cld
++        phys_writeb(CALLBACK_PhysPointer(entry_apm16)+0x5,0xFE);
++        phys_writeb(CALLBACK_PhysPointer(entry_apm16)+0x6,0x38);
++        phys_writew(CALLBACK_PhysPointer(entry_apm16)+0x7,(Bit16u)entry_apm16);
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x9,0xf4fb); // sti hlt
++        phys_writed(CALLBACK_PhysPointer(entry_apm16)+0xb,0x9d04c483); // add sp, 0x4 popf
++        phys_writeb(CALLBACK_PhysPointer(entry_apm16)+0xf,0xcb);   // retf
++        /* Setup APM 32-bit entry */
++        entry_apm32=CALLBACK_Allocate();
++        CallBack_Handlers[entry_apm32]=handle_apm;
++        CALLBACK_SetDescription(entry_apm32,"apm32");
++        phys_writeb(CALLBACK_PhysPointer(entry_apm32)+0x0,0x9c);   // pushf
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x1,0xa80f); // push gs
++        phys_writeb(CALLBACK_PhysPointer(entry_apm32)+0x3,0x0e);   // push cs
++        phys_writed(CALLBACK_PhysPointer(entry_apm32)+0x4,0x10240483); // addl [esp], +0x10
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x8,0xa90f); // pop gs
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0xa,0xfcfa); // cli cld
++        phys_writeb(CALLBACK_PhysPointer(entry_apm32)+0xc,0xFE);
++        phys_writeb(CALLBACK_PhysPointer(entry_apm32)+0xd,0x38);
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0xe,(Bit16u)entry_apm32);
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x10,0xf4fb); // sti hlt
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x12,0xa90f); // pop gs
++        phys_writew(CALLBACK_PhysPointer(entry_apm32)+0x14,0xcb9d); // popf retf
+ 
+ 	/* Default handlers for unhandled interrupts that have to be non-null */
+ 	call_default=CALLBACK_Allocate();
+diff -ru ../dosbox-code-0/src/ints/Makefile.am ./src/ints/Makefile.am
+--- ../dosbox-code-0/src/ints/Makefile.am
++++ ./src/ints/Makefile.am
+@@ -4,4 +4,4 @@
+ libints_a_SOURCES = mouse.cpp xms.cpp xms.h ems.cpp \
+                     int10.cpp int10.h int10_char.cpp int10_memory.cpp int10_misc.cpp int10_modes.cpp \
+                     int10_vesa.cpp int10_pal.cpp int10_put_pixel.cpp int10_video_state.cpp int10_vptable.cpp \
+-                    bios.cpp bios_disk.cpp bios_keyboard.cpp 
++                    apm.cpp bios.cpp bios_disk.cpp bios_keyboard.cpp 
+diff -ru ../dosbox-code-0/src/ints/bios.cpp ./src/ints/bios.cpp
+--- ../dosbox-code-0/src/ints/bios.cpp
++++ ./src/ints/bios.cpp
+@@ -782,6 +782,13 @@
+ 		/* Carry should be set but let's just set it just in case */
+ 		CALLBACK_SCF(true);
+ 		break;
++        case 0x53:      /* BIOS - APM calls */
++                extern void handle_1553(void);
++                handle_1553();
++                /* Not useful for real-mode
++                 * if (reg_ax == 0x5305)
++                    CALLBACK_Idle(); */
++                break;
+ 	case 0x83:	/* BIOS - SET EVENT WAIT INTERVAL */
+ 		{
+ 			if(reg_al == 0x01) { /* Cancel it */
