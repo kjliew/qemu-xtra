@@ -36,7 +36,7 @@ static void handle_155300(void)
     reg_bl = 'M';
     // bit 0 : 16 bit interface supported
     // bit 1 : 32 bit interface supported
-    reg_cx = 0x03;
+    reg_cx = 0x02;
     CALLBACK_SCF(false);
 }
 
@@ -46,6 +46,9 @@ static void handle_155301(void) { CALLBACK_SCF(false); }
 // APM 16 bit protected mode interface connect
 static void handle_155302(void)
 {
+    /* 16-bit protected mode is historically buggy
+     * Just let it fail
+     *
     extern Bitu entry_apm16;
     reg_bx = CALLBACK_PhysPointer(entry_apm16) & 0xFFFFU;
     reg_ax = SEG_BIOS;
@@ -53,6 +56,8 @@ static void handle_155302(void)
     reg_cx = SEG_BIOS;
     reg_di = 0xfff0;
     CALLBACK_SCF(false);
+    */
+    CALLBACK_SCF(true);
 }
 // APM 32 bit protected mode interface connect
 static void handle_155303(void)
