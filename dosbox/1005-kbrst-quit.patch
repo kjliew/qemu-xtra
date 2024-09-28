@@ -1,11 +1,11 @@
 diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
 --- ../dosbox-code-0/src/gui/sdlmain.cpp
 +++ ./src/gui/sdlmain.cpp
-@@ -2825,6 +2852,25 @@
+@@ -2852,6 +2852,26 @@
  #endif
  }
  
-+static void kbrst_quit(void)
++static void shutdown_quit(void)
 +{
 +#if defined (WIN32)
 +	sticky_keys(true); //Might not be needed if the shutdown function switches to windowed mode, but it doesn't hurt
@@ -22,7 +22,8 @@ diff -ru ../dosbox-code-0/src/gui/sdlmain.cpp ./src/gui/sdlmain.cpp
 +#endif
 +        exit(0);
 +}
-+void *kbrst_quit_handler(void) { return (void *)&kbrst_quit; }
++void *shutdown_handler(void) { return (void *)shutdown_quit; }
++void *kbrst_restart_handler(void) { return (void *)&Restart; }
 +
  void GFX_GetSize(int &width, int &height, bool &fullscreen) {
  	width = sdl.draw.width;
@@ -36,10 +37,10 @@ diff -ru ../dosbox-code-0/src/hardware/keyboard.cpp ./src/hardware/keyboard.cpp
  		break;
 +        case 0xfe:
 +                do {
-+                    void *kbrst_quit_handler(void);
-+                    void (*kbrst_quit)(void);
-+                    kbrst_quit = (void (*)(void))kbrst_quit_handler();
-+                    kbrst_quit();
++                    void *kbrst_restart_handler(void);
++                    void (*kbrst_restart)(void);
++                    kbrst_restart = (void (*)(void))kbrst_restart_handler();
++                    kbrst_restart();
 +                } while(0);
 +                break;
  	default:

@@ -91,9 +91,9 @@ static void handle_155307(void)
             break;
         case 3:
             do {
-                void *kbrst_quit_handler(void);
+                void *shutdown_handler(void);
                 void (*apm_shutdown)(void);
-                apm_shutdown = (void (*)(void))kbrst_quit_handler();
+                apm_shutdown = (void (*)(void))shutdown_handler();
                 apm_shutdown();
             } while(0);
             break;
