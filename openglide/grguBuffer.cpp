@@ -91,6 +91,7 @@ grBufferSwap( int swap_interval )
     GlideMsg( "grBufferSwap( %d )\n", swap_interval );
 #endif
 
+    SetSwapInterval( swap_interval );
     RenderDrawTriangles( );
     glFlush( );
 

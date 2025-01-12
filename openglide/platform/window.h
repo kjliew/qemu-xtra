@@ -47,6 +47,7 @@ void GetGammaTable(void *);
 bool SetScreenMode(int &xsize, int &ysize);
 void ResetScreenMode();
 
+void SetSwapInterval(const int);
 void SwapBuffers();
 
 #endif

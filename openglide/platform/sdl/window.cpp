@@ -203,16 +203,6 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             }
         } while(0);
 
-        if (UserConfig.QEmu) {
-            if (UserConfig.VsyncOff) {
-                if (SDL_GL_GetSwapInterval())
-                    SDL_GL_SetSwapInterval(0);
-            }
-            else if (UserConfig.OverrideSync &&
-                    (UserConfig.OverrideSync != SDL_GL_GetSwapInterval()))
-                SDL_GL_SetSwapInterval(UserConfig.OverrideSync & 0x03U);
-        }
-
         if (has_sRGB)
             glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -293,6 +283,15 @@ bool SetScreenMode(int &xsize, int &ysize)
 
 void ResetScreenMode()
 {
+}
+
+void SetSwapInterval(const int i)
+{
+    static int last_i = -1;
+    if (last_i != i) {
+        last_i = i;
+        SDL_GL_SetSwapInterval(i);
+    }
 }
 
 void SwapBuffers()

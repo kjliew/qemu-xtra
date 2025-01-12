@@ -258,7 +258,6 @@ struct ConfigStruct
     int     TextureMemorySize;
     int     FrameBufferMemorySize;
     int     SamplesMSAA;
-    int     OverrideSync;
 
     float   Resolution;
     void    *swap12;

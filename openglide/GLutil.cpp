@@ -283,7 +283,6 @@ void GetOptions( void )
     UserConfig.TextureMemorySize            = 16;
     UserConfig.FrameBufferMemorySize        = 8;
     UserConfig.SamplesMSAA                  = 0;
-    UserConfig.OverrideSync                 = 0;
 
     UserConfig.Priority                     = 2;
 
@@ -323,7 +322,6 @@ void GetOptions( void )
         fprintf( IniFile, "TextureMemorySize=%d\n", UserConfig.TextureMemorySize );
         fprintf( IniFile, "FrameBufferMemorySize=%d\n", UserConfig.FrameBufferMemorySize );
         fprintf( IniFile, "SamplesMSAA=%d\n", UserConfig.SamplesMSAA );
-        fprintf( IniFile, "OverrideSync=%d\n", UserConfig.OverrideSync );
         fprintf( IniFile, "Annotate=%d\n", UserConfig.Annotate );
         fprintf( IniFile, "NoSplash=%d\n", UserConfig.NoSplash );
         fclose( IniFile );
@@ -365,8 +363,6 @@ void GetOptions( void )
                 UserConfig.FrameBufferMemorySize = atoi( Pointer );
             if ( (Pointer = FindConfig(Path, "SamplesMSAA")) )
                 UserConfig.SamplesMSAA = atoi( Pointer );
-            if ( (Pointer = FindConfig(Path, "OverrideSync")) )
-                UserConfig.OverrideSync = atoi( Pointer );
             if ( (Pointer = FindConfig(Path, "Annotate")) )
                 UserConfig.Annotate = atoi( Pointer ) ? true : false;;
             if ( (Pointer = FindConfig(Path, "NoSplash")) )

@@ -343,47 +343,6 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
     glXMakeCurrent(dpy, win, ctx);
 
-    if (UserConfig.QEmu) {
-        union {
-            void (*glXProc)(Display *, GLXDrawable, int);
-            void (*MesaProc)(int);
-        } SwapIntervalEXT;
-        if (find_xstr(xstr, "GLX_MESA_swap_control")) {
-            int (*GetSwapIntervalEXT)(void) = (int (*)(void))
-                OGLGetProcAddress("glXGetSwapIntervalMESA");
-            SwapIntervalEXT.MesaProc = (void (*)(int))
-                OGLGetProcAddress("glXSwapIntervalMESA");
-            if (GetSwapIntervalEXT && SwapIntervalEXT.MesaProc) {
-                if (UserConfig.VsyncOff) {
-                    if (GetSwapIntervalEXT())
-                        SwapIntervalEXT.MesaProc(0);
-                }
-                else if (UserConfig.OverrideSync &&
-                        (UserConfig.OverrideSync != GetSwapIntervalEXT()))
-                    SwapIntervalEXT.MesaProc(UserConfig.OverrideSync & 0x03U);
-            }
-        }
-        else if (find_xstr(xstr, "GLX_EXT_swap_control")) {
-            SwapIntervalEXT.glXProc = (void (*)(Display *, GLXDrawable, int))
-                OGLGetProcAddress("glXSwapIntervalEXT");
-            if (SwapIntervalEXT.glXProc) {
-                unsigned int swap;
-                if (UserConfig.VsyncOff) {
-                    glXQueryDrawable(dpy, win, GLX_SWAP_INTERVAL_EXT, &swap);
-                    if (swap)
-                        SwapIntervalEXT.glXProc(dpy, win, 0);
-                }
-                else if (UserConfig.OverrideSync) {
-                    glXQueryDrawable(dpy, win, GLX_SWAP_INTERVAL_EXT, &swap);
-                    if (UserConfig.OverrideSync != swap)
-                        SwapIntervalEXT.glXProc(dpy, win, UserConfig.OverrideSync & 0x03U);
-                }
-            }
-        }
-        else
-            fprintf(stderr, "Warn: %s\n", "GLX swap control unavailable");
-    }
-
     aux_buffer = 0;
     if (buffer_method == bmCopy)
     {
@@ -644,6 +603,31 @@ void ResetScreenMode()
     }
     if (aux_buffer)
         free (aux_buffer);
+}
+
+void SetSwapInterval(const int i)
+{
+    static int last_i = -1;
+    union {
+        void (*glXProc)(Display *, GLXDrawable, int);
+        void (*MesaProc)(int);
+    } SwapIntervalEXT;
+
+    if (last_i != i) {
+        last_i = i;
+        if (find_xstr(xstr, "GLX_MESA_swap_control")) {
+            SwapIntervalEXT.MesaProc = (void (*)(int))
+                OGLGetProcAddress("glXSwapIntervalMESA");
+            SwapIntervalEXT.MesaProc(i);
+        }
+        else if (find_xstr(xstr, "GLX_EXT_swap_control")) {
+            SwapIntervalEXT.glXProc = (void (*)(Display *, GLXDrawable, int))
+                OGLGetProcAddress("glXSwapIntervalEXT");
+            SwapIntervalEXT.glXProc(dpy, win, i);
+        }
+        else
+            fprintf(stderr, "Warn: %s\n", "GLX swap control unavailable");
+    }
 }
 
 void SwapBuffers()
