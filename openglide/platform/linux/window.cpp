@@ -367,6 +367,7 @@ void FinaliseOpenGLWindow( void)
     if (dpy)
     {
         RestoreGamma ();
+        SetSwapInterval(-1);
         if (ctx)
             glXDestroyContext(dpy, ctx);
         if (!keep_win)
@@ -618,12 +619,14 @@ void SetSwapInterval(const int i)
         if (find_xstr(xstr, "GLX_MESA_swap_control")) {
             SwapIntervalEXT.MesaProc = (void (*)(int))
                 OGLGetProcAddress("glXSwapIntervalMESA");
-            SwapIntervalEXT.MesaProc(i);
+            if (i >= 0)
+                SwapIntervalEXT.MesaProc(i);
         }
         else if (find_xstr(xstr, "GLX_EXT_swap_control")) {
             SwapIntervalEXT.glXProc = (void (*)(Display *, GLXDrawable, int))
                 OGLGetProcAddress("glXSwapIntervalEXT");
-            SwapIntervalEXT.glXProc(dpy, win, i);
+            if (i >= 0)
+                SwapIntervalEXT.glXProc(dpy, win, i);
         }
         else
             fprintf(stderr, "Warn: %s\n", "GLX swap control unavailable");

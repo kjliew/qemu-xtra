@@ -325,6 +325,7 @@ void FinaliseOpenGLWindow( void)
 {
     if ( ramp_stored )
         SetGammaTable(&old_ramp);
+    SetSwapInterval(-1);
 
     wglMakeCurrent( NULL, NULL );
     wglDeleteContext( hRC );
@@ -427,7 +428,8 @@ void SetSwapInterval(const int i)
         wglGetProcAddress("wglSwapIntervalEXT");
     if (SwapIntervalEXT && (last_i != i)) {
         last_i = i;
-        SwapIntervalEXT(i);
+        if (i >= 0)
+            SwapIntervalEXT(i);
     }
 }
 

@@ -224,6 +224,7 @@ void FinaliseOpenGLWindow( void)
 {
     if ( ramp_stored )
         SetGammaTable(&old_ramp);
+    SetSwapInterval(-1);
     if ( self_ctx ) {
         self_ctx = false;
         if (SDL_GL_MakeCurrent(window, NULL) == 0)
@@ -290,7 +291,8 @@ void SetSwapInterval(const int i)
     static int last_i = -1;
     if (last_i != i) {
         last_i = i;
-        SDL_GL_SetSwapInterval(i);
+        if (i >= 0)
+            SDL_GL_SetSwapInterval(i);
     }
 }
 
