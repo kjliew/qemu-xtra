@@ -362,11 +362,14 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     return true;
 }
 
-void FinaliseOpenGLWindow( void)
+void FinaliseOpenGLWindow(void)
 {
     if (dpy)
     {
+        int has_sRGB = UserConfig.FramebufferSRGB;
         RestoreGamma ();
+        if (has_sRGB)
+            glDisable(GL_FRAMEBUFFER_SRGB);
         SetSwapInterval(-1);
         if (ctx)
             glXDestroyContext(dpy, ctx);

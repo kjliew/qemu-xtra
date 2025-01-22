@@ -220,10 +220,14 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     return (context)? true:false;
 }
 
-void FinaliseOpenGLWindow( void)
+void FinaliseOpenGLWindow(void)
 {
+    int has_sRGB = UserConfig.FramebufferSRGB;
+
     if ( ramp_stored )
         SetGammaTable(&old_ramp);
+    if ( has_sRGB )
+        glDisable(GL_FRAMEBUFFER_SRGB);
     SetSwapInterval(-1);
     if ( self_ctx ) {
         self_ctx = false;

@@ -321,10 +321,12 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     return true;
 }
 
-void FinaliseOpenGLWindow( void)
+void FinaliseOpenGLWindow(void)
 {
     if ( ramp_stored )
         SetGammaTable(&old_ramp);
+    if ( UserConfig.FramebufferSRGB )
+        glDisable(GL_FRAMEBUFFER_SRGB);
     SetSwapInterval(-1);
 
     wglMakeCurrent( NULL, NULL );
