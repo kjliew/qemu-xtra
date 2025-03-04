@@ -1,0 +1,168 @@
+diff -Nru ../dosbox-r4484/acinclude.m4 ./acinclude.m4
+--- ../dosbox-r4484/acinclude.m4
++++ acinclude.m4
+@@ -33,6 +33,7 @@
+     no_sdl=yes
+   else
+     SDL_CFLAGS=`$SDL_CONFIG $sdlconf_args --cflags`
++    SDL_CFLAGS="$SDL_CFLAGS ${SDL_CFLAGS/\/SDL/}"
+     SDL_LIBS=`$SDL_CONFIG $sdlconf_args --libs`
+ 
+     sdl_major_version=`$SDL_CONFIG $sdl_args --version | \
+diff -Nru ../dosbox-r4484/configure.ac ./configure.ac
+--- ../dosbox-r4484/configure.ac
++++ configure.ac
+@@ -130,7 +130,7 @@
+ 
+ dnl Look for clock_gettime, a DB_HAVE_CLOCK_GETTIME is set when present
+ AH_TEMPLATE([DB_HAVE_CLOCK_GETTIME],[Determines if the function clock_gettime is available.])
+-AC_SEARCH_LIBS([clock_gettime], [rt] , [found_clock_gettime=yes], [found_clock_gettime=no])
++AC_SEARCH_LIBS([clock_gettime], [rt pthread] , [found_clock_gettime=yes], [found_clock_gettime=no])
+ if test x$found_clock_gettime = xyes; then
+   AC_DEFINE(DB_HAVE_CLOCK_GETTIME)
+ fi
+@@ -489,25 +489,25 @@
+ 
+ AH_TEMPLATE(C_MODEM,[Define to 1 to enable internal modem support, requires SDL_net])
+ AH_TEMPLATE(C_IPX,[Define to 1 to enable IPX over Internet networking, requires SDL_net])
+-AC_CHECK_HEADER(SDL_net.h,have_sdl_net_h=yes,)
++AC_CHECK_HEADER(SDL2/SDL_net.h,have_sdl_net_h=yes,)
+ 
+ if test x$host = xi386-pc-os2-emx ; then
+   AC_MSG_CHECKING(for SDLNet_Init in SDL_net);
+   LIBS_BACKUP=$LIBS;
+-  LIBS="$LIBS -lSDL_Net";
+-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Net.h>]],[[
++  LIBS="$LIBS -lSDL2_Net";
++  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL2/SDL_Net.h>]],[[
+ 	SDLNet_Init ();
+   ]])], [AC_MSG_RESULT(yes); have_sdl_net_lib=yes], AC_MSG_RESULT(no))
+   LIBS=$LIBS_BACKUP
+ else
+-AC_CHECK_LIB(SDL_net, SDLNet_Init, have_sdl_net_lib=yes, , )
++AC_CHECK_LIB(SDL2_net, SDLNet_Init, have_sdl_net_lib=yes, , )
+ fi
+ if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
+-   LIBS="$LIBS -lSDL_net"
++   LIBS="$LIBS -lSDL2_net"
+    AC_DEFINE(C_MODEM,1)
+    AC_DEFINE(C_IPX,1)
+ else 
+-   AC_MSG_WARN([Can't find SDL_net, internal modem and ipx disabled])
++   AC_MSG_WARN([Can't find SDL2_net, internal modem and ipx disabled])
+ fi
+ 
+ AH_TEMPLATE(C_X11_XKB,[define to 1 if you have XKBlib.h and X11 lib])
+@@ -574,18 +574,18 @@
+ fi
+ 
+ AH_TEMPLATE(C_SDL_SOUND,[Define to 1 to enable SDL_sound support])
+-AC_CHECK_HEADER(SDL_sound.h,have_SDL_sound_h=yes,)
+-AC_CHECK_LIB(SDL_sound, Sound_Init, have_SDL_sound_init=yes,,)
+-AC_CHECK_LIB(SDL_sound, Sound_Seek, have_SDL_sound_seek=yes,,)
++AC_CHECK_HEADER(SDL2/SDL_sound.h,have_SDL_sound_h=yes,)
++AC_CHECK_LIB(SDL2_sound, Sound_Init, have_SDL_sound_init=yes,,)
++AC_CHECK_LIB(SDL2_sound, Sound_Seek, have_SDL_sound_seek=yes,,)
+ if test x$host = xi386-pc-os2-emx -a x$have_SDL_sound_init != xyes ; then
+   LIBS_BACKUP=$LIBS;
+-  LIBS="$LIBS -lSDL_Sound -Zomf -lstdc++ -lmodplug -lsmpeg -lmikmod -logg -lspeex -lvorbis -lflac -lvorbisfile";
++  LIBS="$LIBS -lSDL2_Sound -Zomf -lstdc++ -lmodplug -lsmpeg -lmikmod -logg -lspeex -lvorbis -lflac -lvorbisfile";
+   AC_MSG_CHECKING(for Sound_Init in SDL_Sound on OS/2);
+-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Sound.h>]],[[
++  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL2/SDL_Sound.h>]],[[
+ 	Sound_Init ();
+   ]])], [AC_MSG_RESULT(yes); have_SDL_sound_init=yes], AC_MSG_RESULT(no))
+   AC_MSG_CHECKING(for Sound_Seek in SDL_Sound on OS/2);
+-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Sound.h>]],[[
++  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL2/SDL_Sound.h>]],[[
+ 	Sound_Seek (NULL, 0);
+   ]])], [AC_MSG_RESULT(yes); have_SDL_sound_seek=yes], AC_MSG_RESULT(no))
+   if test x$have_SDL_sound_init != xyes ; then
+@@ -594,13 +594,13 @@
+ fi
+ if test x$have_SDL_sound_h = xyes -a x$have_SDL_sound_init = xyes ; then
+   if test x$have_SDL_sound_seek = xyes ; then
+-    LIBS="-lSDL_sound $LIBS"
++    LIBS="-lSDL2_sound $LIBS"
+     AC_DEFINE(C_SDL_SOUND,1)
+    else 
+-     AC_MSG_WARN([Can't find SoundSeek in libSDL_Sound, libSDL_sound support disabled])
++     AC_MSG_WARN([Can't find SoundSeek in libSDL2_Sound, libSDL2_sound support disabled])
+    fi
+ else
+-  AC_MSG_WARN([Can't find libSDL_sound, libSDL_sound support disabled])
++  AC_MSG_WARN([Can't find libSDL2_sound, libSDL2_sound support disabled])
+ fi
+ 
+ dnl Check for mprotect. Needed for 64 bits linux 
+diff -Nru ../dosbox-r4484/include/ipx.h ./include/ipx.h
+--- ../dosbox-r4484/include/ipx.h
++++ include/ipx.h
+@@ -70,7 +70,8 @@
+ #endif
+ 
+ // For Uint8 type
+-#include "SDL_net.h"
++#define WITHOUT_SDL
++#include "SDL2/SDL_net.h"
+ 
+ struct PackedIP {
+ 	Uint32 host;
+diff -Nru ../dosbox-r4484/include/ipxserver.h ./include/ipxserver.h
+--- ../dosbox-r4484/include/ipxserver.h
++++ include/ipxserver.h
+@@ -21,7 +21,9 @@
+ 
+ #if C_IPX
+ 
+-#include "SDL_net.h"
++#define WITHOUT_SDL
++#define NULL __null
++#include "SDL2/SDL_net.h"
+ 
+ struct packetBuffer {
+ 	Bit8u buffer[1024];
+diff -Nru ../dosbox-r4484/src/dos/cdrom.h ./src/dos/cdrom.h
+--- ../dosbox-r4484/src/dos/cdrom.h
++++ src/dos/cdrom.h
+@@ -35,7 +35,10 @@
+ #include "SDL_thread.h"
+ 
+ #if defined(C_SDL_SOUND)
+-#include "SDL_sound.h"
++#undef SDL_MAJOR_VERSION
++#define SDL_MAJOR_VERSION 2
++#define SDL_h_
++#include "SDL2/SDL_sound.h"
+ #endif
+ 
+ #define RAW_SECTOR_SIZE		2352
+diff -Nru ../dosbox-r4484/src/hardware/ipx.cpp ./src/hardware/ipx.cpp
+--- ../dosbox-r4484/src/hardware/ipx.cpp
++++ src/hardware/ipx.cpp
+@@ -37,9 +37,11 @@
+ #include "ipx.h"
+ #include "ipxserver.h"
+ #include "timer.h"
+-#include "SDL_net.h"
+ #include "programs.h"
+ #include "pic.h"
++
++#define WITHOUT_SDL
++#include "SDL2/SDL_net.h"
+ 
+ #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
+ 
+diff -Nru ../dosbox-r4484/src/hardware/serialport/misc_util.h ./src/hardware/serialport/misc_util.h
+--- ../dosbox-r4484/src/hardware/serialport/misc_util.h
++++ src/hardware/serialport/misc_util.h
+@@ -58,7 +58,8 @@
+  #define CAPWORD NETWRAPPER_TCP
+ #endif
+ 
+-#include "SDL_net.h"
++#define WITHOUT_SDL
++#include "SDL2/SDL_net.h"
+ 
+ 
+ 

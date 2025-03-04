@@ -53,6 +53,5 @@ if [ ! -z $(find ./ | grep "\.rej$") ]; then
     exit 1
 fi
 rm -fr .svn $(find ./ | grep "\.orig$")
-sed -i -e "s/\(\[rt\)\]/\1\ pthread\]/" configure.ac
 ./autogen.sh 2>/dev/null && rm -fr autom4*/
 echo "** DOSBox SVN $SVN **"
