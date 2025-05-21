@@ -163,7 +163,9 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         context = SDL_GL_CreateContext(window);
         self_ctx = (context)? true:false;
     }
-    if (context) {
+    if (!context)
+        fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, SDL_GetError());
+    else {
         int cRedBits, cGreenBits, cBlueBits, cAlphaBits,cDepthBits, cStencilBits,
             cAuxBuffers, nSamples[2], has_sRGB = UserConfig.FramebufferSRGB;
         if (SDL_GL_MakeCurrent(window, context))
