@@ -53,6 +53,42 @@ static const char               *xstr;
 static std::vector<unsigned short> gammaRamp;
 static std::vector<XColor>         xcolors;
 
+static int syncFBConfigToXID(Display *dpy, const GLXFBConfig *fbc, const int nElem)
+{
+    static const struct {
+        int cColorBits, cAlphaBits;
+    } pfd = { .cColorBits = 32, .cAlphaBits = 8 };
+    const char *xid_str = getenv("SDL_VIDEO_X11_VISUALID");
+    int ret = 0;
+
+    if (xid_str) {
+        XVisualInfo *vinfo;
+        VisualID vid = -1, xid = strtoul(xid_str, NULL, 0);
+        for (int i = 0; i < nElem; i++) {
+            vinfo = glXGetVisualFromFBConfig(dpy, fbc[i]);
+            if (vinfo) {
+                vid = vinfo->visualid;
+                XFree(vinfo);
+            }
+            if (vid == xid) {
+                ret = i;
+                break;
+            }
+        }
+    }
+    else {
+        int bufsz, alphaBits;
+        for (int i = 0; i < nElem; i++) {
+            glXGetFBConfigAttrib(dpy, fbc[i], GLX_BUFFER_SIZE, &bufsz);
+            glXGetFBConfigAttrib(dpy, fbc[i], GLX_ALPHA_SIZE, &alphaBits);
+            if (bufsz == pfd.cColorBits && alphaBits == pfd.cAlphaBits) {
+                ret = i;
+                break;
+            }
+        }
+    }
+    return ret;
+}
 static int *iattribs_fb(Display *dpy, const int do_msaa)
 {
     static int ia[] = {
@@ -154,7 +190,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
 
         if (glXChooseFBConfig && glXGetVisualFromFBConfig)
         {
-            int fbattr, elements, *attrib = iattribs_fb(dpy, UserConfig.SamplesMSAA);
+            int fbid, elements, *attrib = iattribs_fb(dpy, UserConfig.SamplesMSAA);
             GLXFBConfig *fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrib, &elements);
             if (UserConfig.SamplesMSAA && !fbc && !elements) {
                 attrib = iattribs_fb(dpy, 0);
@@ -163,23 +199,24 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
             if (fbc && elements)
             {
                 static const char *swapMethod[] = {
-                    "swapNone", "swapXChg", "swapCpy", "swapUndef"
+                    "swapNone", "swapXchg", "swapCopy", "swapUndef"
                 };
-                int swapattr = 0;
-                int nAux, nSamples[2];
+                int swapAttrib = 0;
+                int i, nAux, nSamples[2];
                 has_sRGB = UserConfig.FramebufferSRGB;
+                i = syncFBConfigToXID(dpy, fbc, elements);
                 if (find_xstr(xstr, "GLX_OML_swap_method"))
-                    glXGetFBConfigAttrib(dpy, *fbc, GLX_SWAP_METHOD_OML, &swapattr);
-                glXGetFBConfigAttrib(dpy, *fbc, GLX_FBCONFIG_ID, &fbattr);
-                glXGetFBConfigAttrib(dpy, *fbc, GLX_AUX_BUFFERS, &nAux);
-                glXGetFBConfigAttrib(dpy, *fbc, GLX_SAMPLE_BUFFERS, &nSamples[0]);
-                glXGetFBConfigAttrib(dpy, *fbc, GLX_SAMPLES, &nSamples[1]);
-                visinfo = glXGetVisualFromFBConfig(dpy, *fbc);
+                    glXGetFBConfigAttrib(dpy, fbc[i], GLX_SWAP_METHOD_OML, &swapAttrib);
+                glXGetFBConfigAttrib(dpy, fbc[i], GLX_FBCONFIG_ID, &fbid);
+                glXGetFBConfigAttrib(dpy, fbc[i], GLX_AUX_BUFFERS, &nAux);
+                glXGetFBConfigAttrib(dpy, fbc[i], GLX_SAMPLE_BUFFERS, &nSamples[0]);
+                glXGetFBConfigAttrib(dpy, fbc[i], GLX_SAMPLES, &nSamples[1]);
+                visinfo = glXGetVisualFromFBConfig(dpy, fbc[i]);
                 XFree(fbc);
                 if (visinfo) {
-                    buffer_method = (swapattr == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
+                    buffer_method = (swapAttrib == GLX_SWAP_COPY_OML)? bmCopy:bmExchange;
                     fprintf(stderr, "Info: FBConfig id 0x%03x visual 0x%03lx %s nAux %d nSamples %d %d %s\n",
-                        fbattr, visinfo->visualid, swapMethod[(swapattr & 0x3)],
+                        fbid, visinfo->visualid, swapMethod[(swapAttrib & 0x3)],
                         nAux, nSamples[0], nSamples[1], (has_sRGB)? "sRGB":"");
                 }
             }
