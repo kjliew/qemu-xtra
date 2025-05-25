@@ -53,38 +53,18 @@ static const char               *xstr;
 static std::vector<unsigned short> gammaRamp;
 static std::vector<XColor>         xcolors;
 
-static int syncFBConfigToXID(Display *dpy, const GLXFBConfig *fbc, const int nElem)
+static int syncFBConfigToPFD(Display *dpy, const GLXFBConfig *fbc, const int nElem)
 {
     static const struct {
         int cColorBits, cAlphaBits;
     } pfd = { .cColorBits = 32, .cAlphaBits = 8 };
-    const char *xid_str = getenv("SDL_VIDEO_X11_VISUALID");
-    int ret = 0;
-
-    if (xid_str) {
-        XVisualInfo *vinfo;
-        VisualID vid = -1, xid = strtoul(xid_str, NULL, 0);
-        for (int i = 0; i < nElem; i++) {
-            vinfo = glXGetVisualFromFBConfig(dpy, fbc[i]);
-            if (vinfo) {
-                vid = vinfo->visualid;
-                XFree(vinfo);
-            }
-            if (vid == xid) {
-                ret = i;
-                break;
-            }
-        }
-    }
-    else {
-        int bufsz, alphaBits;
-        for (int i = 0; i < nElem; i++) {
-            glXGetFBConfigAttrib(dpy, fbc[i], GLX_BUFFER_SIZE, &bufsz);
-            glXGetFBConfigAttrib(dpy, fbc[i], GLX_ALPHA_SIZE, &alphaBits);
-            if (bufsz == pfd.cColorBits && alphaBits == pfd.cAlphaBits) {
-                ret = i;
-                break;
-            }
+    int ret = 0, colorBits, alphaBits;
+    for (int i = 0; i < nElem; i++) {
+        glXGetFBConfigAttrib(dpy, fbc[i], GLX_BUFFER_SIZE, &colorBits);
+        glXGetFBConfigAttrib(dpy, fbc[i], GLX_ALPHA_SIZE, &alphaBits);
+        if (colorBits == pfd.cColorBits && alphaBits == pfd.cAlphaBits) {
+            ret = i;
+            break;
         }
     }
     return ret;
@@ -105,18 +85,8 @@ static int *iattribs_fb(Display *dpy, const int do_msaa)
         None
     };
 
-    int nElem, cBufsz = 0;
-    GLXFBConfig *currFB = glXGetFBConfigs(dpy, DefaultScreen(dpy), &nElem);
-    if (currFB && nElem) {
-        glXGetFBConfigAttrib(dpy, currFB[0], GLX_BUFFER_SIZE, &cBufsz);
-        XFree(currFB);
-    }
-
     for (int i = 0; ia[i]; i+=2) {
         switch(ia[i]) {
-            case GLX_BUFFER_SIZE:
-                ia[i+1] = (cBufsz >= 24)? cBufsz:ia[i+1];
-                break;
             case GLX_SAMPLE_BUFFERS:
                 ia[i+1] = (do_msaa)? 1:0;
                 break;
@@ -201,10 +171,12 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                 static const char *swapMethod[] = {
                     "swapNone", "swapXchg", "swapCopy", "swapUndef"
                 };
-                int swapAttrib = 0;
+                const char *xsstr = xstr;
+                int swapAttrib = GLX_SWAP_UNDEFINED_OML;
                 int i, nAux, nSamples[2];
                 has_sRGB = UserConfig.FramebufferSRGB;
-                i = syncFBConfigToXID(dpy, fbc, elements);
+                xstr = glXQueryServerString(dpy, scrnum, GLX_EXTENSIONS);
+                i = syncFBConfigToPFD(dpy, fbc, elements);
                 if (find_xstr(xstr, "GLX_OML_swap_method"))
                     glXGetFBConfigAttrib(dpy, fbc[i], GLX_SWAP_METHOD_OML, &swapAttrib);
                 glXGetFBConfigAttrib(dpy, fbc[i], GLX_FBCONFIG_ID, &fbid);
@@ -219,6 +191,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
                         fbid, visinfo->visualid, swapMethod[(swapAttrib & 0x3)],
                         nAux, nSamples[0], nSamples[1], (has_sRGB)? "sRGB":"");
                 }
+                xstr = xsstr;
             }
             else
                 fprintf(stderr, "Warn: %s\n", "Fallback to glXChooseVisual()");
