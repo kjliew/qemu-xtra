@@ -58,8 +58,8 @@ TexDB.h
 libglide3x_la_SOURCES = $(libglide2x_la_SOURCES)
 
 # We substitute the libtool-specific library version in configure.in.
-libglide2x_la_LDFLAGS = -no-undefined -version-info $(LIBVERSION) $(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) $(DLLFLAGS_2)
-libglide3x_la_LDFLAGS = -no-undefined -version-info $(LIBVERSION) $(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) $(DLLFLAGS_3)
+libglide2x_la_LDFLAGS = -no-undefined -version-info $(LIBVERSION) $(X_LIBS) $(X_EXTRA_LIBS) $(DLLFLAGS_2)
+libglide3x_la_LDFLAGS = -no-undefined -version-info $(LIBVERSION) $(X_LIBS) $(X_EXTRA_LIBS) $(DLLFLAGS_3)
 
 INCLUDES=
 

@@ -23,7 +23,6 @@
 #include "SDL.h"
 #ifndef _WIN32
 #define GL_ARB_multitexture
-#include <GL/gl.h>
 #undef GL_ARB_multitexture
 #undef GL_GLEXT_VERSION
 #undef __gl_glext_h_
