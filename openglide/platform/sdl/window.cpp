@@ -71,9 +71,7 @@ static bool ramp_stored;
 static SDL_Window *window;
 static SDL_Renderer *render;
 static SDL_GLContext context;
-static bool self_wnd;
-static bool self_ctx;
-static bool wnd_from;
+static bool self_ctx, self_wnd, wnd_from;
 static void *hlib;
 
 bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
@@ -95,6 +93,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         .GLSetAttribute = &SDL_GL_SetAttribute,
     };
 
+    self_wnd = false;
     if (!wnd) {
         const char *title = "SDL2-OpenGLide";
         uint32_t flags = (UserConfig.InitFullScreen)? SDL_WINDOW_FULLSCREEN_DESKTOP:0;
@@ -120,6 +119,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         int (*InitSubSystem)(const int);
         LOAD_SOLIB(hlib);
         INIT_SUBSS(hlib);
+        wnd_from = false;
         if (!(wnd & ((uintptr_t)0xFFFE << 32))) {
             if (InitSubSystem && !InitSubSystem(SDL_INIT_VIDEO))
                 window = SDL_CreateWindowFrom((const void *)wnd);
@@ -158,6 +158,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
         SDL_DestroyRenderer(render);
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "");
     }
+    self_ctx = false;
     context = SDL_GL_GetCurrentContext();
     if (!context) {
         context = SDL_GL_CreateContext(window);
@@ -230,18 +231,16 @@ void FinaliseOpenGLWindow(void)
         SetGammaTable(&old_ramp);
     if ( has_sRGB )
         glDisable(GL_FRAMEBUFFER_SRGB);
+
     SetSwapInterval(-1);
+
     if ( self_ctx ) {
-        self_ctx = false;
         if (SDL_GL_MakeCurrent(window, NULL) == 0)
             SDL_GL_DeleteContext(context);
     }
-    if ( self_wnd ) {
-        self_wnd = false;
+    if ( self_wnd )
         SDL_DestroyWindow(window);
-    }
     if ( wnd_from ) {
-        wnd_from = false;
         void (*QuitSubSystem)(const int);
         QUIT_SUBSS(hlib);
         QuitSubSystem(SDL_INIT_VIDEO);
