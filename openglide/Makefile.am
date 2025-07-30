@@ -47,7 +47,7 @@ g3wrap.cpp \
 g3wrap.h \
 FormatConversion.h \
 glext.h \
-Glextensions.h \
+GLExtensions.h \
 GlOgl.h \
 GLRender.h \
 OGLTables.h \

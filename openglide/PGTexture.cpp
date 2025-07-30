@@ -12,7 +12,7 @@
 
 #include "GlOgl.h"
 #include "PGTexture.h"
-#include "Glextensions.h"
+#include "GLExtensions.h"
 #include "FormatConversion.h"
 #include "OGLTables.h"
 

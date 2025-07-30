@@ -14,7 +14,7 @@
 
 #include "GlOgl.h"
 #include "GLRender.h"
-#include "Glextensions.h"
+#include "GLExtensions.h"
 #include "PGTexture.h"
 #include "OGLTables.h"
 

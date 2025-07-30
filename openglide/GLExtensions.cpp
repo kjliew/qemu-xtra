@@ -16,7 +16,7 @@
 
 #include "GlOgl.h"
 #include "GLRender.h"
-#include "Glextensions.h"
+#include "GLExtensions.h"
 
 #include "platform/openglext.h"
 #include "platform/error.h"

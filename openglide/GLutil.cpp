@@ -17,7 +17,7 @@
 
 #include "wrapper_config.h"
 #include "GlOgl.h"
-#include "Glextensions.h"
+#include "GLExtensions.h"
 #include "OGLTables.h"
 
 #include "platform.h"

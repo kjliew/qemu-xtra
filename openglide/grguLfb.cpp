@@ -11,7 +11,7 @@
 //**************************************************************
 
 #include "GlOgl.h"
-#include "Glextensions.h"
+#include "GLExtensions.h"
 #include "GLRender.h"
 #include "FormatConversion.h"
 
