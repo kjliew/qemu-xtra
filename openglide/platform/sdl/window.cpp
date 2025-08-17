@@ -156,7 +156,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
     }
     if (render) {
         SDL_DestroyRenderer(render);
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "");
+        SDL_ResetHint(SDL_HINT_RENDER_DRIVER);
     }
     self_ctx = false;
     context = SDL_GL_GetCurrentContext();

@@ -55,20 +55,19 @@ static std::vector<XColor>         xcolors;
 
 static int syncFBConfigToPFD(Display *dpy, const GLXFBConfig *fbc, const int nElem)
 {
-    static const struct {
-        int cColorBits, cAlphaBits;
-    } pfd = { .cColorBits = 32, .cAlphaBits = 8 };
-    int ret = 0, colorBits, alphaBits;
+    int ret = 0, colorBits;
     for (int i = 0; i < nElem; i++) {
         glXGetFBConfigAttrib(dpy, fbc[i], GLX_BUFFER_SIZE, &colorBits);
-        glXGetFBConfigAttrib(dpy, fbc[i], GLX_ALPHA_SIZE, &alphaBits);
-        if (colorBits == pfd.cColorBits && alphaBits == pfd.cAlphaBits) {
+        XVisualInfo *vinfo = glXGetVisualFromFBConfig(dpy, fbc[i]);
+        if (vinfo->depth == colorBits)
             ret = i;
+        XFree(vinfo);
+        if (ret)
             break;
-        }
     }
     return ret;
 }
+
 static int *iattribs_fb(Display *dpy, const int do_msaa)
 {
     static int ia[] = {
@@ -78,13 +77,13 @@ static int *iattribs_fb(Display *dpy, const int do_msaa)
         GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
         GLX_BUFFER_SIZE     , 32,
         GLX_DEPTH_SIZE      , 24,
+        GLX_ALPHA_SIZE      , 8,
         GLX_STENCIL_SIZE    , 8,
         GLX_DOUBLEBUFFER    , True,
         GLX_SAMPLE_BUFFERS  , 0,
         GLX_SAMPLES         , 0,
         None
     };
-
     for (int i = 0; ia[i]; i+=2) {
         switch(ia[i]) {
             case GLX_SAMPLE_BUFFERS:
