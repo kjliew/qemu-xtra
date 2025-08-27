@@ -1,5 +1,5 @@
-diff -Nru ../dosbox-r4484/acinclude.m4 ./acinclude.m4
---- ../dosbox-r4484/acinclude.m4
+diff -Nru ../dosbox-code-0/acinclude.m4 ./acinclude.m4
+--- ../dosbox-code-0/acinclude.m4
 +++ acinclude.m4
 @@ -33,6 +33,7 @@
      no_sdl=yes
@@ -9,8 +9,8 @@ diff -Nru ../dosbox-r4484/acinclude.m4 ./acinclude.m4
      SDL_LIBS=`$SDL_CONFIG $sdlconf_args --libs`
  
      sdl_major_version=`$SDL_CONFIG $sdl_args --version | \
-diff -Nru ../dosbox-r4484/configure.ac ./configure.ac
---- ../dosbox-r4484/configure.ac
+diff -Nru ../dosbox-code-0/configure.ac ./configure.ac
+--- ../dosbox-code-0/configure.ac
 +++ configure.ac
 @@ -130,7 +130,7 @@
  
@@ -95,8 +95,8 @@ diff -Nru ../dosbox-r4484/configure.ac ./configure.ac
  fi
  
  dnl Check for mprotect. Needed for 64 bits linux 
-diff -Nru ../dosbox-r4484/include/ipx.h ./include/ipx.h
---- ../dosbox-r4484/include/ipx.h
+diff -Nru ../dosbox-code-0/include/ipx.h ./include/ipx.h
+--- ../dosbox-code-0/include/ipx.h
 +++ include/ipx.h
 @@ -70,7 +70,8 @@
  #endif
@@ -108,8 +108,8 @@ diff -Nru ../dosbox-r4484/include/ipx.h ./include/ipx.h
  
  struct PackedIP {
  	Uint32 host;
-diff -Nru ../dosbox-r4484/include/ipxserver.h ./include/ipxserver.h
---- ../dosbox-r4484/include/ipxserver.h
+diff -Nru ../dosbox-code-0/include/ipxserver.h ./include/ipxserver.h
+--- ../dosbox-code-0/include/ipxserver.h
 +++ include/ipxserver.h
 @@ -21,7 +21,9 @@
  
@@ -122,8 +122,8 @@ diff -Nru ../dosbox-r4484/include/ipxserver.h ./include/ipxserver.h
  
  struct packetBuffer {
  	Bit8u buffer[1024];
-diff -Nru ../dosbox-r4484/src/dos/cdrom.h ./src/dos/cdrom.h
---- ../dosbox-r4484/src/dos/cdrom.h
+diff -Nru ../dosbox-code-0/src/dos/cdrom.h ./src/dos/cdrom.h
+--- ../dosbox-code-0/src/dos/cdrom.h
 +++ src/dos/cdrom.h
 @@ -35,7 +35,10 @@
  #include "SDL_thread.h"
@@ -137,8 +137,8 @@ diff -Nru ../dosbox-r4484/src/dos/cdrom.h ./src/dos/cdrom.h
  #endif
  
  #define RAW_SECTOR_SIZE		2352
-diff -Nru ../dosbox-r4484/src/hardware/ipx.cpp ./src/hardware/ipx.cpp
---- ../dosbox-r4484/src/hardware/ipx.cpp
+diff -Nru ../dosbox-code-0/src/hardware/ipx.cpp ./src/hardware/ipx.cpp
+--- ../dosbox-code-0/src/hardware/ipx.cpp
 +++ src/hardware/ipx.cpp
 @@ -37,9 +37,11 @@
  #include "ipx.h"
@@ -153,8 +153,8 @@ diff -Nru ../dosbox-r4484/src/hardware/ipx.cpp ./src/hardware/ipx.cpp
  
  #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
  
-diff -Nru ../dosbox-r4484/src/hardware/serialport/misc_util.h ./src/hardware/serialport/misc_util.h
---- ../dosbox-r4484/src/hardware/serialport/misc_util.h
+diff -Nru ../dosbox-code-0/src/hardware/serialport/misc_util.h ./src/hardware/serialport/misc_util.h
+--- ../dosbox-code-0/src/hardware/serialport/misc_util.h
 +++ src/hardware/serialport/misc_util.h
 @@ -58,7 +58,8 @@
   #define CAPWORD NETWRAPPER_TCP
