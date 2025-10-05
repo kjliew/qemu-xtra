@@ -9,6 +9,7 @@ DEPS=" \
     sed \
     shasum \
     svn \
+    tail \
     xxd \
 " \
 
@@ -25,33 +26,35 @@ rm -fr dosbox-code-0
 svn checkout $@ https://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk dosbox-code-0 | tee /tmp/_svn | tail -n 2
 SVN=`tail -n 1 /tmp/_svn | sed "s/.*revision\ /r/;s/\.$//"`
 rm -f /tmp/_svn
-if [ -d dosbox-$SVN ]; then
-    echo Already exist dosbox-$SVN
-    exit 1
-fi
+[ -d dosbox-$SVN ] && \
+    echo Already exist dosbox-$SVN && exit 1
 mv -v dosbox-code-0 dosbox-$SVN
 
 rsync -r ./dosbox-0/ ./dosbox-$SVN/
-cp -f $(find ../openglide/ | grep -e sdk2.*\.h$ -e fgfont | grep -v glide3) ./dosbox-$SVN/include/
-cd dosbox-$SVN
-for i in $(ls ../100*.patch); do
-    echo "** Apply $i **"
-    patch -s -p0 -i $i
+for i in $(ls 100*.patch); do
+    echo -e "\e[1;37m  Apply $i\e[0;0m"
+    cat $i | patch -d ./dosbox-$SVN -s -p0
 done
 if [ x`uname` == xDarwin ] && [ x`uname -m` == xarm64 ]; then
-    echo "** Apply $(ls ../200*.patch) **"
-    patch -s -p0 -i $(ls ../200*.patch)
+    echo -e "\e[1;37m  Apply $(ls 200*.patch)\e[0;0m"
+    cat $(ls 200*.patch) | patch -d ./dosbox-$SVN -s -p0
 fi
 MUNT_MT32=" \
-https://raw.githubusercontent.com/munt/munt/master/DOSBox-mt32-patch/dosbox-SVN-r4479-mt32-patch.diff
-" \
-
-echo "** Apply Munt/MT32 patch **"
-curl -s $MUNT_MT32 | patch -s -p1
-if [ ! -z $(find ./ | grep "\.rej$") ]; then
-    echo Apply patch failed
-    exit 1
-fi
+https://raw.githubusercontent.com/munt/munt/master/DOSBox-mt32-patch/dosbox-SVN-r4479-mt32-patch.diff"
+echo -e "\e[1;37m  Apply Munt/MT32 patch\e[0;0m"
+curl -s $MUNT_MT32 | patch -d ./dosbox-$SVN -s -p1
+ESS_ESFM=" \
+https://github.com/Kagamiin/ESFMu/archive/refs/tags/v1.2.6.tar.gz"
+ESFMU_PKG=`basename $ESS_ESFM | sed "s/\.tar.*//;s/v/ESFMu\-/"`
+echo -e "\e[1;37m  Apply package $ESFMU_PKG\e[0;0m"
+curl -s -L $ESS_ESFM | tar -zx -C /tmp && \
+    rsync --info=progress2 $(find /tmp/$ESFMU_PKG/ | grep -e "\.[ch]$") \
+        ./dosbox-$SVN/src/hardware/esfmu/ && \
+    rm -fr /tmp/$ESFMU_PKG
+[ ! -z $(find ./dosbox-$SVN | grep "\.rej$") ] && \
+    echo Apply patch failed && exit 1
+cp -f $(find ../openglide/ | grep -e sdk2.*\.h$ -e fgfont | grep -v glide3) ./dosbox-$SVN/include/
+cd ./dosbox-$SVN
 rm -fr .svn $(find ./ | grep "\.orig$")
 ./autogen.sh 2>/dev/null && rm -fr autom4*/
-echo "** DOSBox SVN $SVN **"
+echo -e "\e[1;37m  DOSBox SVN $SVN\e[0;0m"

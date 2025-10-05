@@ -1,0 +1,515 @@
+diff -Nru ../dosbox-code-0/configure.ac ./configure.ac
+--- ../dosbox-code-0/configure.ac
++++ ./configure.ac
+@@ -685,6 +685,7 @@
+ src/gui/Makefile
+ src/hardware/Makefile
+ src/hardware/mame/Makefile
++src/hardware/esfmu/Makefile
+ src/hardware/serialport/Makefile
+ src/ints/Makefile
+ src/libs/Makefile
+diff -Nru ../dosbox-code-0/include/hardware.h ./include/hardware.h
+--- ../dosbox-code-0/include/hardware.h
++++ ./include/hardware.h
+@@ -24,7 +24,7 @@
+ 
+ class Section;
+ enum OPL_Mode {
+-	OPL_none,OPL_cms,OPL_opl2,OPL_dualopl2,OPL_opl3,OPL_opl3gold
++	OPL_none,OPL_cms,OPL_opl2,OPL_dualopl2,OPL_opl3,OPL_opl3gold,OPL_esfm
+ };
+ #define CAPTURE_WAVE	0x01
+ #define CAPTURE_OPL		0x02
+diff -Nru ../dosbox-code-0/src/Makefile.am ./src/Makefile.am
+--- ../dosbox-code-0/src/Makefile.am
++++ ./src/Makefile.am
+@@ -13,7 +13,7 @@
+ 
+ dosbox_SOURCES = dosbox.cpp $(ico_stuff)
+ dosbox_LDADD = cpu/libcpu.a debug/libdebug.a dos/libdos.a fpu/libfpu.a  hardware/libhardware.a gui/libgui.a \
+-               ints/libints.a misc/libmisc.a shell/libshell.a hardware/mame/libmame.a \
++               ints/libints.a misc/libmisc.a shell/libshell.a hardware/mame/libmame.a hardware/esfmu/libesfmu.a \
+                hardware/serialport/libserial.a libs/gui_tk/libgui_tk.a
+ 
+ EXTRA_DIST = winres.rc dosbox.ico
+diff -Nru ../dosbox-code-0/src/dosbox.cpp ./src/dosbox.cpp
+--- ../dosbox-code-0/src/dosbox.cpp
++++ ./src/dosbox.cpp
+@@ -584,7 +584,7 @@
+ 
+ 	secprop=control->AddSection_prop("sblaster",&SBLASTER_Init,true);//done
+ 
+-	const char* sbtypes[] = { "sb1", "sb2", "sbpro1", "sbpro2", "sb16", "gb", "none", 0 };
++	const char* sbtypes[] = { "sb1", "sb2", "sbpro1", "sbpro2", "sb16", "gb", "ess", "none", 0 };
+ 	Pstring = secprop->Add_string("sbtype",Property::Changeable::WhenIdle,"sb16");
+ 	Pstring->Set_values(sbtypes);
+ 	Pstring->Set_help("Type of Soundblaster to emulate. gb is Gameblaster.");
+@@ -608,12 +608,12 @@
+ 	Pbool = secprop->Add_bool("sbmixer",Property::Changeable::WhenIdle,true);
+ 	Pbool->Set_help("Allow the soundblaster mixer to modify the DOSBox mixer.");
+ 
+-	const char* oplmodes[]={ "auto", "cms", "opl2", "dualopl2", "opl3", "opl3gold", "none", 0};
++	const char* oplmodes[]={ "auto", "cms", "opl2", "dualopl2", "opl3", "opl3gold", "esfm", "none", 0};
+ 	Pstring = secprop->Add_string("oplmode",Property::Changeable::WhenIdle,"auto");
+ 	Pstring->Set_values(oplmodes);
+ 	Pstring->Set_help("Type of OPL emulation. On 'auto' the mode is determined by sblaster type. All OPL modes are Adlib-compatible, except for 'cms'.");
+ 
+-	const char* oplemus[]={ "default", "compat", "fast", "mame", 0};
++	const char* oplemus[]={ "default", "compat", "fast", "mame", "esfmu", 0};
+ 	Pstring = secprop->Add_string("oplemu",Property::Changeable::WhenIdle,"default");
+ 	Pstring->Set_values(oplemus);
+ 	Pstring->Set_help("Provider for the OPL emulation. compat might provide better quality (see oplrate as well).");
+diff -Nru ../dosbox-code-0/src/hardware/Makefile.am ./src/hardware/Makefile.am
+--- ../dosbox-code-0/src/hardware/Makefile.am
++++ ./src/hardware/Makefile.am
+@@ -1,6 +1,6 @@
+ AM_CPPFLAGS = -I$(top_srcdir)/include
+ 
+-SUBDIRS = serialport mame
++SUBDIRS = serialport mame esfmu
+ 
+ EXTRA_DIST = opl.cpp opl.h adlib.h dbopl.h pci_devices.h
+ 
+diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
+--- ../dosbox-code-0/src/hardware/adlib.cpp
++++ ./src/hardware/adlib.cpp
+@@ -33,6 +33,8 @@
+ #include "mame/fmopl.h"
+ #include "mame/ymf262.h"
+ 
++#include "esfmu/esfm.h"
++
+ #define OPL2_INTERNAL_FREQ    3600000   // The OPL2 operates at 3.6MHz
+ #define OPL3_INTERNAL_FREQ    14400000  // The OPL3 operates at 14.4MHz
+ 
+@@ -166,6 +168,61 @@
+ }
+ 
+ 
++namespace ESFMu {
++
++struct Handler : public Adlib::Handler {
++        esfm_chip chip = {};
++
++        void WriteReg(uint32_t reg, uint8_t val) override {
++                ESFM_write_reg_buffered_fast(&chip, (uint16_t)reg, val);
++        }
++
++        uint8_t ReadbackReg( uint32_t reg ) override {
++                uint8_t val = ESFM_readback_reg(&chip, (uint16_t)reg);
++                return val;
++        }
++
++        void ESFMSetEmulationMode() override {
++                ESFM_write_port(&chip, 0, 0);
++        }
++
++        uint32_t WriteAddr(uint32_t port, uint8_t val) override {
++                uint16_t addr;
++                if (chip.native_mode) {
++                        ESFM_write_port(&chip, (port & 3) | 2, val);
++                        return (uint32_t)chip.addr_latch & 0x7ff;
++                } else {
++                        addr = val;
++                        if ((port & 2) && (addr == 0x05 || chip.emu_newmode)) {
++                                addr |= 0x100;
++                        }
++                        return addr;
++                }
++        }
++
++        void Generate(MixerChannel *chan, Bitu samples) override {
++                int16_t buf[1024 * 2];
++
++                while (samples > 0) {
++                        uint32_t todo = samples > 1024 ? 1024 : (uint32_t)samples;
++                        ESFM_generate_stream(&chip, buf, todo);
++                        chan->AddSamples_s16(todo, buf);
++                        samples -= todo;
++                }
++        }
++
++        void Init(Bitu rate) override {
++                // ESFMu only ever runs at ~49716 Hz.
++                (void)rate;
++                ESFM_init(&chip);
++        }
++
++        ~Handler() {
++        }
++};
++
++}
++
+ 
+ #define RAW_SIZE 1024
+ 
+@@ -481,6 +538,27 @@
+ 	return false;
+ }
+ 
++uint8_t *Chip::ReadbackReg( uint32_t reg, uint8_t *ret ) {
++        uint8_t val;
++        if (ret) {
++                switch ( reg ) {
++                case 0x02:
++                        *ret = timer0.GetCounter();
++                        return ret;
++                case 0x03:
++                        *ret = timer1.GetCounter();
++                        return ret;
++                case 0x04:
++                        val = timer0.IsEnabled() & 1;
++                        val |= (timer1.IsEnabled() & 1) << 1;
++                        val |= (timer1.IsMasked() & 1) << 5;
++                        val |= (timer1.IsMasked() & 1) << 6;
++                        *ret = val;
++                        return ret;
++                }
++        }
++        return NULL;
++}
+ 
+ Bit8u Chip::Read( ) {
+ 	const double time( PIC_FullIndex() );
+@@ -567,6 +645,32 @@
+ 	if ( !mixerChan->enabled ) {
+ 		mixerChan->Enable(true);
+ 	}
++        if ( mode == MODE_ESFM && esfm_nativemode ) {
++                switch (port & 3)
++                {
++                case 0:
++                        // disable native mode
++                        handler->ESFMSetEmulationMode();
++                        esfm_nativemode = false;
++                        break;
++                case 1:
++                        if ( (reg.normal & 0x500) == 0x400) {
++                                // Emulation mode register pokehole region at 0x400 (mirrored at 0x600)
++                                if ( !chip[0].Write( reg.normal & 0xff, (uint8_t)val ) ) {
++                                        handler->WriteReg( reg.normal, (uint8_t)val );
++                                }
++                        } else {
++                                handler->WriteReg( reg.normal, (uint8_t)val );
++                        }
++                        // TODO: capture for ESFM native mode? it's complicated...
++                        //CacheWrite( reg.normal, (uint8_t)val );
++                        break;
++                case 2: case 3:
++                        reg.normal = handler->WriteAddr( (uint32_t)port, (uint8_t)val ) & 0x7ff;
++                        break;
++                }
++                return;
++        }
+ 	if ( port&1 ) {
+ 		switch ( mode ) {
+ 		case MODE_OPL3GOLD:
+@@ -595,6 +699,19 @@
+ 				DualWrite( 1, reg.dual[1], val );
+ 			}
+ 			break;
++                case MODE_ESFM:
++                        if ( !chip[0].Write( reg.normal, (uint8_t)val ) ) {
++                                if ( reg.normal == 0x105 && (val & 0x80) ) {
++                                        // This write will enable ESFM native mode
++                                        esfm_nativemode = true;
++                                        if ( capture ) {
++                                                LOG_MSG("WARNING: ESFM native mode has been enabled by the application, but it's not supported during Raw OPL capture. Nothing will be captured after this point.");
++                                        }
++                                }
++                                handler->WriteReg( reg.normal, (uint8_t)val );
++                                CacheWrite( reg.normal, (uint8_t)val );
++                        }
++                        break;
+ 		}
+ 	} else {
+ 		//Ask the handler to write the address
+@@ -618,6 +735,7 @@
+ 			} //Fall-through if not handled by control chip
+ 			/* FALLTHROUGH */
+ 		case MODE_OPL3:
++                case MODE_ESFM:
+ 			reg.normal = handler->WriteAddr( port, val ) & 0x1ff;
+ 			break;
+ 		case MODE_DUALOPL2:
+@@ -674,6 +792,27 @@
+ 		}
+ 		//Make sure the low bits are 6 on opl2
+ 		return chip[ (port >> 1) & 1].Read() | 0x6;
++        case MODE_ESFM:
++                switch ( port & 3 ) {
++                case 0:
++                        return chip[0].Read();
++                case 1:
++                        if ( esfm_nativemode ) {
++                                if ( ( reg.normal & 0x500 ) == 0x400 ) {
++                                        // Emulation mode register pokehole region at 0x400 (mirrored at 0x600)
++                                        uint8_t val;
++                                        if ( chip[0].ReadbackReg( reg.normal & 0xff, &val ) ) {
++                                                return val;
++                                        }
++                                }
++                                return handler->ReadbackReg( reg.normal );
++                        } else {
++                                return 0x00;
++                        }
++                case 2: case 3:
++                        return 0xff;
++                }
++                break;
+ 	}
+ 	return 0;
+ }
+@@ -683,6 +822,7 @@
+ 	mode = m;
+ 	memset(cache, 0, sizeof(cache));
+ 	switch ( mode ) {
++        case MODE_ESFM:
+ 	case MODE_OPL3:
+ 	case MODE_OPL3GOLD:
+ 	case MODE_OPL2:
+@@ -775,6 +915,10 @@
+ 		module->capture = 0;
+ 		LOG_MSG("Stopped Raw OPL capturing.");
+ 	} else {
++                if (module->oplmode == OPL_esfm && module->esfm_nativemode) {
++                        LOG_MSG("ERROR: Cannot capture Raw OPL output because ESFM native mode is being used by the current application, which is not supported by the Raw OPL format.");
++                        return;
++                }
+ 		LOG_MSG("Preparing to capture Raw OPL, will start with first note played.");
+ 		module->capture = new Adlib::Capture( &module->cache );
+ 	}
+@@ -792,6 +936,7 @@
+ 	ctrl.rvol = 0xff;
+ 	handler = 0;
+ 	capture = 0;
++        esfm_nativemode = false;
+ 
+ 	Section_prop * section=static_cast<Section_prop *>(configuration);
+ 	Bitu base = section->Get_hex("sbbase");
+@@ -806,6 +951,17 @@
+ 	//Used to be 2.0, which was measured to be too high. Exact value depends on card/clone.
+ 	mixerChan->SetScale( 1.5f );  
+ 
++        if (oplmode == OPL_esfm && oplemu != "esfmu") {
++                LOG_MSG("Adlib: WARN: an ESFM-capable sbtype (or the 'esfm' oplmode) was chosen, but the chosen oplemu is not ESFM-capable. ESFM native mode features will not work!");
++                // Fall back to OPL3 mode, because ESFM port read/write mode will cause
++                // unintended behavior with non-ESFM emulators
++                oplmode = OPL_opl3;
++        }
++
++        if (oplemu == "esfmu" && oplmode != OPL_esfm) {
++                LOG_MSG("Adlib: WARN: an ESFM-capable oplemu was chosen, but the chosen sbtype (or oplmode) is not ESFM-capable. ESFM native mode features will not work!");
++        }
++
+ 	if (oplemu == "compat") {
+ 		if ( oplmode == OPL_opl2 ) {
+ 			handler = new OPL2::Handler();
+@@ -821,6 +977,11 @@
+ 			handler = new MAMEOPL3::Handler();
+ 		}
+ 	} 
++        else if (oplemu == "esfmu") {
++                handler = new ESFMu::Handler();
++                // ESFMu only supports 49716 Hz sample rate, override it here.
++                rate = 49716;
++        }
+ 	//Fall back to dbop, will also catch auto
+ 	else if (oplemu == "fast" || 1) {
+ 		const bool opl3Mode = oplmode >= OPL_opl3;
+@@ -842,6 +1003,9 @@
+ 	case OPL_opl3gold:
+ 		Init( Adlib::MODE_OPL3GOLD );
+ 		break;
++        case OPL_esfm:
++                Init( Adlib::MODE_ESFM );
++                break;
+ 	}
+ 	//0x388 range
+ 	WriteHandler[0].Install(0x388,OPL_Write,IO_MB, 4 );
+diff -Nru ../dosbox-code-0/src/hardware/adlib.h ./src/hardware/adlib.h
+--- ../dosbox-code-0/src/hardware/adlib.h
++++ ./src/hardware/adlib.h
+@@ -84,6 +84,18 @@
+ 		counterInterval = (256 - counter) * clockInterval;
+ 	}
+ 
++        uint8_t GetCounter() {
++                return counter;
++        }
++
++        bool IsMasked() {
++                return masked;
++        }
++
++        bool IsEnabled() {
++                return enabled;
++        }
++
+ 	void SetMask(bool set) {
+ 		masked = set;
+ 		if (masked)
+@@ -115,6 +127,7 @@
+ 	bool Write( Bit32u addr, Bit8u val );
+ 	//Read the current timer state, will use current double
+ 	Bit8u Read( );
++        uint8_t *ReadbackReg( uint32_t reg, uint8_t *ret );
+ 
+ 	Chip();
+ };
+@@ -124,7 +137,8 @@
+ 	MODE_OPL2,
+ 	MODE_DUALOPL2,
+ 	MODE_OPL3,
+-	MODE_OPL3GOLD
++	MODE_OPL3GOLD,
++        MODE_ESFM
+ } Mode;
+ 
+ class Handler {
+@@ -133,6 +147,10 @@
+ 	virtual Bit32u WriteAddr( Bit32u port, Bit8u val ) = 0;
+ 	//Write to a specific register in the chip
+ 	virtual void WriteReg( Bit32u addr, Bit8u val ) = 0;
++        //Read back a specific register in the chip (ESFM-specific)
++        virtual uint8_t ReadbackReg( uint32_t reg ) {(void)reg; return 0xff;}
++        //Sets the card back to emulation mode if it was in native mode (ESFM-specific)
++        virtual void ESFMSetEmulationMode() {};
+ 	//Generate a certain amount of samples
+ 	virtual void Generate( MixerChannel* chan, Bitu samples ) = 0;
+ 	//Initialize at a specific sample rate and mode
+@@ -174,6 +192,7 @@
+ 	static OPL_Mode oplmode;
+ 	MixerChannel* mixerChan;
+ 	Bit32u lastUsed;				//Ticks when adlib was last used to turn of mixing after a few second
++        bool esfm_nativemode;           // When using MODE_ESFM, whether the synth is in native mode or not - affects port mapping
+ 
+ 	Handler* handler;				//Handler that will generate the sound
+ 	RegisterCache cache;
+diff -Nru ../dosbox-code-0/src/hardware/esfmu/Makefile.am ./src/hardware/esfmu/Makefile.am
+--- ../dosbox-code-0/src/hardware/esfmu/Makefile.am
++++ ./src/hardware/esfmu/Makefile.am
+@@ -0,0 +1,5 @@
++AM_CPPFLAGS = -I$(top_srcdir)/include
++
++noinst_LIBRARIES = libesfmu.a
++libesfmu_a_SOURCES = esfmu.h \
++    esfm.c esfm_registers.c
+diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
+--- ../dosbox-code-0/src/hardware/sblaster.cpp
++++ ./src/hardware/sblaster.cpp
+@@ -108,6 +108,7 @@
+ 	Bit8u time_constant;
+ 	DSP_MODES mode;
+ 	SB_TYPES type;
++        bool ess_type;
+ 	struct {
+ 		bool pending_8bit;
+ 		bool pending_16bit;
+@@ -139,6 +140,8 @@
+ 		bool enabled;
+ 		bool filtered;
+ 		Bit8u unhandled[0x48];
++                uint8_t ess_id_str[4];
++                uint8_t ess_id_str_pos;
+ 	} mixer;
+ 	struct {
+ 		Bit8u reference;
+@@ -1072,6 +1075,12 @@
+ 	case 0xe4:	/* Write Test Register */
+ 		sb.dsp.test_register=sb.dsp.in.data[0];
+ 		break;
++        case 0xe7:      /* ESS detect/read config */
++                if (sb.ess_type) {
++                    DSP_AddData(0x68);
++                    DSP_AddData(0x80 | 0x09/*ESS 1688 version*/);
++                }
++                break;
+ 	case 0xe8:	/* Read Test Register */
+ 		DSP_FlushData();
+ 		DSP_AddData(sb.dsp.test_register);;
+@@ -1460,6 +1469,14 @@
+ 		if (sb.type==SBT_16) return sb.mixer.mic<<3;
+ 		ret=0xa;
+ 		break;
++        case 0x40:
++                if (sb.ess_type) {
++                        ret=sb.mixer.ess_id_str[sb.mixer.ess_id_str_pos];
++                        sb.mixer.ess_id_str_pos++;
++                        sb.mixer.ess_id_str_pos %= 4;
++                } else
++                        ret=0xa;
++                break;
+ 	case 0x80:		/* IRQ Select */
+ 		switch (sb.hw.irq) {
+ 		case 2:  return 0x1;
+@@ -1546,6 +1563,8 @@
+ 		break;
+ 	case MIXER_INDEX:
+ 		sb.mixer.index=val8;
++                if (sb.ess_type && sb.mixer.index == 0x40)
++                    sb.mixer.ess_id_str_pos = 0;
+ 		break;
+ 	case MIXER_DATA:
+ 		CTMIXER_Write(val8);
+@@ -1618,6 +1637,14 @@
+ 		else if (!strcasecmp(sbtype,"sbpro2")) type=SBT_PRO2;
+ 		else if (!strcasecmp(sbtype,"sb16")) type=SBT_16;
+ 		else if (!strcasecmp(sbtype,"gb")) type=SBT_GB;
++                else if (!strcasecmp(sbtype,"ess")) {
++                        type=SBT_PRO2;
++                        sb.ess_type = true;
++                        sb.mixer.ess_id_str[0] = 0x16;
++                        sb.mixer.ess_id_str[1] = 0x88;
++                        LOG(LOG_SB,LOG_NORMAL)("ESS%x%x emulation enabled.",
++                                sb.mixer.ess_id_str[0], sb.mixer.ess_id_str[1]);
++                }
+ 		else if (!strcasecmp(sbtype,"none")) type=SBT_NONE;
+ 		else type=SBT_16;
+ 
+@@ -1633,6 +1660,7 @@
+ 		else if (!strcasecmp(omode,"dualopl2")) opl_mode=OPL_dualopl2;
+ 		else if (!strcasecmp(omode,"opl3")) opl_mode=OPL_opl3;
+ 		else if (!strcasecmp(omode,"opl3gold")) opl_mode=OPL_opl3gold;
++		else if (!strcasecmp(omode,"esfm")) opl_mode=OPL_esfm;
+ 		/* Else assume auto */
+ 		else {
+ 			switch (type) {
+@@ -1651,7 +1679,7 @@
+ 				break;
+ 			case SBT_PRO2:
+ 			case SBT_16:
+-				opl_mode=OPL_opl3;
++				opl_mode=(sb.ess_type)? OPL_esfm:OPL_opl3;
+ 				break;
+ 			}
+ 		}
+@@ -1674,6 +1702,10 @@
+ 		sb.mixer.stereo=false;
+ 
+ 		Find_Type_And_Opl(section,sb.type,oplmode);
++                if (sb.ess_type) {
++                    sb.mixer.ess_id_str[2] = (sb.hw.base >> 8) & 0xff;
++                    sb.mixer.ess_id_str[3] = sb.hw.base & 0xff;
++                }
+ 
+ 		switch (oplmode) {
+ 		case OPL_none:
+@@ -1689,6 +1721,7 @@
+ 		case OPL_dualopl2:
+ 		case OPL_opl3:
+ 		case OPL_opl3gold:
++                case OPL_esfm:
+ 			OPL_Init(section,oplmode);
+ 			break;
+ 		}
+@@ -1747,6 +1780,7 @@
+ 		case OPL_dualopl2:
+ 		case OPL_opl3:
+ 		case OPL_opl3gold:
++                case OPL_esfm:
+ 			OPL_ShutDown(m_configuration);
+ 			break;
+ 		}

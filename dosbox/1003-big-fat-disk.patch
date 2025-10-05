@@ -1,3 +1,50 @@
+diff -ru ../dosbox-code-0/include/bios_disk.h include/bios_disk.h
+--- ../dosbox-code-0/include/bios_disk.h
++++ include/bios_disk.h
+@@ -66,10 +66,15 @@
+ 	Bit32u sector_size;
+ 	Bit32u heads,cylinders,sectors;
+ private:
+-	Bit32u current_fpos;
++	Bit64u current_fpos;
+ 	enum { NONE,READ,WRITE } last_action;
+ };
+ 
++#ifndef __APPLE__
++#define fseek fseeko64
++#define ftell ftello64
++#endif
++
+ void updateDPT(void);
+ void incrementFDD(void);
+ 
+diff -ru ../dosbox-code-0/src/ints/bios_disk.cpp src/ints/bios_disk.cpp
+--- ../dosbox-code-0/src/ints/bios_disk.cpp
++++ src/ints/bios_disk.cpp
+@@ -159,9 +159,9 @@
+ }
+ 
+ Bit8u imageDisk::Read_AbsoluteSector(Bit32u sectnum, void * data) {
+-	Bit32u bytenum;
++	Bit64u bytenum;
+ 
+-	bytenum = sectnum * sector_size;
++	bytenum = (Bit64u)sectnum * sector_size;
+ 
+ 	if (last_action==WRITE || bytenum!=current_fpos) fseek(diskimg,bytenum,SEEK_SET);
+ 	size_t ret=fread(data, 1, sector_size, diskimg);
+@@ -181,9 +181,9 @@
+ 
+ 
+ Bit8u imageDisk::Write_AbsoluteSector(Bit32u sectnum, void *data) {
+-	Bit32u bytenum;
++	Bit64u bytenum;
+ 
+-	bytenum = sectnum * sector_size;
++	bytenum = (Bit64u)sectnum * sector_size;
+ 
+ 	//LOG_MSG("Writing sectors to %ld at bytenum %d", sectnum, bytenum);
+ 
 diff -ru ../dosbox-code-0/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
 --- ../dosbox-code-0/src/dos/dos_programs.cpp
 +++ ./src/dos/dos_programs.cpp
