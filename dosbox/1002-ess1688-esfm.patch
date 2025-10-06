@@ -92,12 +92,12 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +struct Handler : public Adlib::Handler {
 +        esfm_chip chip = {};
 +
-+        void WriteReg(uint32_t reg, uint8_t val) override {
++        void WriteReg(Bit32u reg, Bit8u val) override {
 +                ESFM_write_reg_buffered_fast(&chip, (uint16_t)reg, val);
 +        }
 +
-+        uint8_t ReadbackReg( uint32_t reg ) override {
-+                uint8_t val = ESFM_readback_reg(&chip, (uint16_t)reg);
++        Bit8u ReadbackReg( Bit32u reg ) override {
++                Bit8u val = ESFM_readback_reg(&chip, (uint16_t)reg);
 +                return val;
 +        }
 +
@@ -105,11 +105,11 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                ESFM_write_port(&chip, 0, 0);
 +        }
 +
-+        uint32_t WriteAddr(uint32_t port, uint8_t val) override {
++        Bit32u WriteAddr(Bit32u port, Bit8u val) override {
 +                uint16_t addr;
 +                if (chip.native_mode) {
 +                        ESFM_write_port(&chip, (port & 3) | 2, val);
-+                        return (uint32_t)chip.addr_latch & 0x7ff;
++                        return (Bit32u)chip.addr_latch & 0x7ff;
 +                } else {
 +                        addr = val;
 +                        if ((port & 2) && (addr == 0x05 || chip.emu_newmode)) {
@@ -123,7 +123,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                int16_t buf[1024 * 2];
 +
 +                while (samples > 0) {
-+                        uint32_t todo = samples > 1024 ? 1024 : (uint32_t)samples;
++                        Bit32u todo = samples > 1024 ? 1024 : (Bit32u)samples;
 +                        ESFM_generate_stream(&chip, buf, todo);
 +                        chan->AddSamples_s16(todo, buf);
 +                        samples -= todo;
@@ -149,8 +149,8 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  	return false;
  }
  
-+uint8_t *Chip::ReadbackReg( uint32_t reg, uint8_t *ret ) {
-+        uint8_t val;
++Bit8u *Chip::ReadbackReg( Bit32u reg, Bit8u *ret ) {
++        Bit8u val;
 +        if (ret) {
 +                switch ( reg ) {
 +                case 0x02:
@@ -188,17 +188,17 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                case 1:
 +                        if ( (reg.normal & 0x500) == 0x400) {
 +                                // Emulation mode register pokehole region at 0x400 (mirrored at 0x600)
-+                                if ( !chip[0].Write( reg.normal & 0xff, (uint8_t)val ) ) {
-+                                        handler->WriteReg( reg.normal, (uint8_t)val );
++                                if ( !chip[0].Write( reg.normal & 0xff, (Bit8u)val ) ) {
++                                        handler->WriteReg( reg.normal, (Bit8u)val );
 +                                }
 +                        } else {
-+                                handler->WriteReg( reg.normal, (uint8_t)val );
++                                handler->WriteReg( reg.normal, (Bit8u)val );
 +                        }
 +                        // TODO: capture for ESFM native mode? it's complicated...
-+                        //CacheWrite( reg.normal, (uint8_t)val );
++                        //CacheWrite( reg.normal, (Bit8u)val );
 +                        break;
 +                case 2: case 3:
-+                        reg.normal = handler->WriteAddr( (uint32_t)port, (uint8_t)val ) & 0x7ff;
++                        reg.normal = handler->WriteAddr( (Bit32u)port, (Bit8u)val ) & 0x7ff;
 +                        break;
 +                }
 +                return;
@@ -211,7 +211,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  			}
  			break;
 +                case MODE_ESFM:
-+                        if ( !chip[0].Write( reg.normal, (uint8_t)val ) ) {
++                        if ( !chip[0].Write( reg.normal, (Bit8u)val ) ) {
 +                                if ( reg.normal == 0x105 && (val & 0x80) ) {
 +                                        // This write will enable ESFM native mode
 +                                        esfm_nativemode = true;
@@ -219,8 +219,8 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                                                LOG_MSG("WARNING: ESFM native mode has been enabled by the application, but it's not supported during Raw OPL capture. Nothing will be captured after this point.");
 +                                        }
 +                                }
-+                                handler->WriteReg( reg.normal, (uint8_t)val );
-+                                CacheWrite( reg.normal, (uint8_t)val );
++                                handler->WriteReg( reg.normal, (Bit8u)val );
++                                CacheWrite( reg.normal, (Bit8u)val );
 +                        }
 +                        break;
  		}
@@ -246,7 +246,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                        if ( esfm_nativemode ) {
 +                                if ( ( reg.normal & 0x500 ) == 0x400 ) {
 +                                        // Emulation mode register pokehole region at 0x400 (mirrored at 0x600)
-+                                        uint8_t val;
++                                        Bit8u val;
 +                                        if ( chip[0].ReadbackReg( reg.normal & 0xff, &val ) ) {
 +                                                return val;
 +                                        }
@@ -336,7 +336,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.h ./src/hardware/adlib.h
  		counterInterval = (256 - counter) * clockInterval;
  	}
  
-+        uint8_t GetCounter() {
++        Bit8u GetCounter() {
 +                return counter;
 +        }
 +
@@ -355,7 +355,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.h ./src/hardware/adlib.h
  	bool Write( Bit32u addr, Bit8u val );
  	//Read the current timer state, will use current double
  	Bit8u Read( );
-+        uint8_t *ReadbackReg( uint32_t reg, uint8_t *ret );
++        Bit8u *ReadbackReg( Bit32u reg, Bit8u *ret );
  
  	Chip();
  };
@@ -374,7 +374,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.h ./src/hardware/adlib.h
  	//Write to a specific register in the chip
  	virtual void WriteReg( Bit32u addr, Bit8u val ) = 0;
 +        //Read back a specific register in the chip (ESFM-specific)
-+        virtual uint8_t ReadbackReg( uint32_t reg ) {(void)reg; return 0xff;}
++        virtual Bit8u ReadbackReg( Bit32u reg ) {(void)reg; return 0xff;}
 +        //Sets the card back to emulation mode if it was in native mode (ESFM-specific)
 +        virtual void ESFMSetEmulationMode() {};
  	//Generate a certain amount of samples
@@ -412,8 +412,8 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  		bool enabled;
  		bool filtered;
  		Bit8u unhandled[0x48];
-+                uint8_t ess_id_str[4];
-+                uint8_t ess_id_str_pos;
++                Bit8u ess_id_str[4];
++                Bit8u ess_id_str_pos;
  	} mixer;
  	struct {
  		Bit8u reference;
