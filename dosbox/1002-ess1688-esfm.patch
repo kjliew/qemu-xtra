@@ -172,7 +172,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  
  Bit8u Chip::Read( ) {
  	const double time( PIC_FullIndex() );
-@@ -567,6 +644,32 @@
+@@ -567,6 +644,33 @@
  	if ( !mixerChan->enabled ) {
  		mixerChan->Enable(true);
  	}
@@ -183,6 +183,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                        // disable native mode
 +                        handler->ESFMSetEmulationMode();
 +                        esfm_nativemode = false;
++                        mixerChan->SetScale( 1.5f );
 +                        break;
 +                case 1:
 +                        if ( (reg.normal & 0x500) == 0x400) {
@@ -205,7 +206,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  	if ( port&1 ) {
  		switch ( mode ) {
  		case MODE_OPL3GOLD:
-@@ -595,6 +698,19 @@
+@@ -595,6 +699,20 @@
  				DualWrite( 1, reg.dual[1], val );
  			}
  			break;
@@ -214,6 +215,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
 +                                if ( reg.normal == 0x105 && (val & 0x80) ) {
 +                                        // This write will enable ESFM native mode
 +                                        esfm_nativemode = true;
++                                        mixerChan->SetScale( 2.0f );
 +                                        if ( capture ) {
 +                                                LOG_MSG("WARNING: ESFM native mode has been enabled by the application, but it's not supported during Raw OPL capture. Nothing will be captured after this point.");
 +                                        }
@@ -225,7 +227,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  		}
  	} else {
  		//Ask the handler to write the address
-@@ -618,6 +734,7 @@
+@@ -618,6 +736,7 @@
  			} //Fall-through if not handled by control chip
  			/* FALLTHROUGH */
  		case MODE_OPL3:
@@ -233,7 +235,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  			reg.normal = handler->WriteAddr( port, val ) & 0x1ff;
  			break;
  		case MODE_DUALOPL2:
-@@ -674,6 +791,27 @@
+@@ -674,6 +793,27 @@
  		}
  		//Make sure the low bits are 6 on opl2
  		return chip[ (port >> 1) & 1].Read() | 0x6;
@@ -261,7 +263,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  	}
  	return 0;
  }
-@@ -683,6 +821,7 @@
+@@ -683,6 +823,7 @@
  	mode = m;
  	memset(cache, 0, sizeof(cache));
  	switch ( mode ) {
@@ -269,7 +271,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  	case MODE_OPL3:
  	case MODE_OPL3GOLD:
  	case MODE_OPL2:
-@@ -775,6 +914,10 @@
+@@ -775,6 +916,10 @@
  		module->capture = 0;
  		LOG_MSG("Stopped Raw OPL capturing.");
  	} else {
@@ -280,7 +282,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  		LOG_MSG("Preparing to capture Raw OPL, will start with first note played.");
  		module->capture = new Adlib::Capture( &module->cache );
  	}
-@@ -792,6 +936,7 @@
+@@ -792,6 +937,7 @@
  	ctrl.rvol = 0xff;
  	handler = 0;
  	capture = 0;
@@ -288,7 +290,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  
  	Section_prop * section=static_cast<Section_prop *>(configuration);
  	Bitu base = section->Get_hex("sbbase");
-@@ -821,9 +965,20 @@
+@@ -821,9 +967,20 @@
  			handler = new MAMEOPL3::Handler();
  		}
  	} 
@@ -309,7 +311,7 @@ diff -Nru ../dosbox-code-0/src/hardware/adlib.cpp ./src/hardware/adlib.cpp
  		handler = new DBOPL::Handler( opl3Mode );
  	}
  	handler->Init( rate );
-@@ -842,6 +997,9 @@
+@@ -842,6 +999,9 @@
  	case OPL_opl3gold:
  		Init( Adlib::MODE_OPL3GOLD );
  		break;
@@ -420,7 +422,43 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  	case 0xe8:	/* Read Test Register */
  		DSP_FlushData();
  		DSP_AddData(sb.dsp.test_register);;
-@@ -1460,6 +1469,14 @@
+@@ -1234,6 +1243,12 @@
+ 	((((_WHICH_[0] & 0x1e) << 3) | ((_WHICH_[1] & 0x1e) >> 1)) |	\
+ 		((sb.type==SBT_PRO1 || sb.type==SBT_PRO2) ? 0x11:0))
+ 
++#define SETESSVOL(_WHICH_,_VAL_) \
++	_WHICH_[0]=   ((((_VAL_) & 0xf0) >> 3)|((_VAL_) >> 7)); \
++	_WHICH_[1]=   ((((_VAL_) & 0x0f) << 1)|((_VAL_) >> 3))
++#define MAKEESSVOL(_WHICH_) \
++        (((_WHICH_[0] << 3) & 0xf0) + (_WHICH_[1] >> 1))
++
+ static void DSP_ChangeStereo(bool stereo) {
+ 	if (!sb.dma.stereo && stereo) {
+ 		sb.chan->SetFreq(sb.freq/2);
+@@ -1346,6 +1361,14 @@
+ 			sb.mixer.cda[0]=val>>3;
+ 			CTMIXER_UpdateVolumes();
+ 		}
++                if (sb.ess_type) {
++                        Bit8u v0, v1 = MAKEESSVOL(sb.mixer.fm);
++                        v0 = (val>v1)? (val-v1):(v1-val);
++                        if (v0==0x11 || !v1) {
++                            SETESSVOL(sb.mixer.fm,val);
++                            CTMIXER_UpdateVolumes();
++                        }
++                }
+ 		break;
+ 	case 0x37:		/* CD Volume Right (SB16) */
+ 		if (sb.type==SBT_16) {
+@@ -1442,6 +1465,7 @@
+ 		break;
+ 	case 0x36:		/* CD Volume Left (SB16) */
+ 		if (sb.type==SBT_16) return sb.mixer.cda[0]<<3;
++                if (sb.ess_type) return MAKEESSVOL(sb.mixer.fm);
+ 		ret=0xa;
+ 		break;
+ 	case 0x37:		/* CD Volume Right (SB16) */
+@@ -1460,6 +1484,14 @@
  		if (sb.type==SBT_16) return sb.mixer.mic<<3;
  		ret=0xa;
  		break;
@@ -435,7 +473,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  	case 0x80:		/* IRQ Select */
  		switch (sb.hw.irq) {
  		case 2:  return 0x1;
-@@ -1546,6 +1563,8 @@
+@@ -1546,6 +1578,8 @@
  		break;
  	case MIXER_INDEX:
  		sb.mixer.index=val8;
@@ -444,7 +482,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  		break;
  	case MIXER_DATA:
  		CTMIXER_Write(val8);
-@@ -1618,6 +1637,14 @@
+@@ -1618,6 +1652,14 @@
  		else if (!strcasecmp(sbtype,"sbpro2")) type=SBT_PRO2;
  		else if (!strcasecmp(sbtype,"sb16")) type=SBT_16;
  		else if (!strcasecmp(sbtype,"gb")) type=SBT_GB;
@@ -459,7 +497,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  		else if (!strcasecmp(sbtype,"none")) type=SBT_NONE;
  		else type=SBT_16;
  
-@@ -1633,6 +1660,7 @@
+@@ -1633,6 +1675,7 @@
  		else if (!strcasecmp(omode,"dualopl2")) opl_mode=OPL_dualopl2;
  		else if (!strcasecmp(omode,"opl3")) opl_mode=OPL_opl3;
  		else if (!strcasecmp(omode,"opl3gold")) opl_mode=OPL_opl3gold;
@@ -467,7 +505,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  		/* Else assume auto */
  		else {
  			switch (type) {
-@@ -1651,7 +1679,7 @@
+@@ -1651,7 +1694,7 @@
  				break;
  			case SBT_PRO2:
  			case SBT_16:
@@ -476,7 +514,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  				break;
  			}
  		}
-@@ -1674,6 +1702,10 @@
+@@ -1674,6 +1717,10 @@
  		sb.mixer.stereo=false;
  
  		Find_Type_And_Opl(section,sb.type,oplmode);
@@ -487,7 +525,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  
  		switch (oplmode) {
  		case OPL_none:
-@@ -1689,6 +1721,7 @@
+@@ -1689,6 +1736,7 @@
  		case OPL_dualopl2:
  		case OPL_opl3:
  		case OPL_opl3gold:
@@ -495,7 +533,7 @@ diff -Nru ../dosbox-code-0/src/hardware/sblaster.cpp ./src/hardware/sblaster.cpp
  			OPL_Init(section,oplmode);
  			break;
  		}
-@@ -1747,6 +1780,7 @@
+@@ -1747,6 +1795,7 @@
  		case OPL_dualopl2:
  		case OPL_opl3:
  		case OPL_opl3gold:
