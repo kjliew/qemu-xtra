@@ -111,13 +111,15 @@ diff -Nru ../dosbox-code-0/include/ipx.h ./include/ipx.h
 diff -Nru ../dosbox-code-0/include/ipxserver.h ./include/ipxserver.h
 --- ../dosbox-code-0/include/ipxserver.h
 +++ include/ipxserver.h
-@@ -21,7 +21,9 @@
+@@ -21,7 +21,11 @@
  
  #if C_IPX
  
 -#include "SDL_net.h"
-+#define WITHOUT_SDL
++#if defined(MACOSX)
 +#define NULL __null
++#endif
++#define WITHOUT_SDL
 +#include "SDL2/SDL_net.h"
  
  struct packetBuffer {
