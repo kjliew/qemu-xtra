@@ -1,4 +1,5 @@
 CFLAGS=-I../build -I../openglide -I. -Werror -march=x86-64-v2 -mtune=generic -Os -fomit-frame-pointer
+CFLAGS+=-fuse-linker-plugin -flto=auto
 LDFLAGS=-Wl,--disable-auto-image-base,--no-seh,--dynamicbase,--nxcompat
 LIBS=-L. -lglide2x.dll
 TARGET3=glide3x.dll
