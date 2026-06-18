@@ -45,6 +45,17 @@ diff -ru ../dosbox-code-0/src/ints/bios_disk.cpp src/ints/bios_disk.cpp
  
  	//LOG_MSG("Writing sectors to %ld at bytenum %d", sectnum, bytenum);
  
+diff -ru ../dosbox-code-0/src/dos/dos_memory.cpp ./src/dos/dos_memory.cpp
+--- ../dosbox-code-0/src/dos/dos_memory.cpp
++++ ./src/dos/dos_memory.cpp
+@@ -391,6 +391,7 @@
+ 	Bit16u ihseg = 0x70;
+ 	Bit16u ihofs = 0xF4;
+ 	real_writeb(ihseg,ihofs,(Bit8u)0xCF);		//An IRET Instruction
++	real_writew(ihseg,ihofs+0x19,(Bit16u)0xFFFF);	//ED4.exe ((DPB+0x19)=0xFFFF)
+ 	RealSetVec(0x01,RealMake(ihseg,ihofs));		//BioMenace (offset!=4)
+ 	RealSetVec(0x02,RealMake(ihseg,ihofs));		//BioMenace (segment<0x8000)
+ 	RealSetVec(0x03,RealMake(ihseg,ihofs));		//Alien Incident (offset!=0)
 diff -ru ../dosbox-code-0/src/dos/dos_programs.cpp ./src/dos/dos_programs.cpp
 --- ../dosbox-code-0/src/dos/dos_programs.cpp
 +++ ./src/dos/dos_programs.cpp
