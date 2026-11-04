@@ -22,7 +22,11 @@ diff -ru ../dosbox-code-0/src/dosbox.cpp src/dosbox.cpp
 diff -ru ../dosbox-code-0/src/hardware/memory.cpp src/hardware/memory.cpp
 --- ../dosbox-code-0/src/hardware/memory.cpp
 +++ src/hardware/memory.cpp
-@@ -30,7 +30,7 @@
+@@ -27,10 +27,11 @@
+ #include "voodoo.h"
+
+ #include <string.h>
++#include <new>
  
  #define PAGES_IN_BLOCK	((1024*1024)/MEM_PAGE_SIZE)
  #define SAFE_MEMORY	32
